@@ -2,7 +2,12 @@
 #ifndef STATISTICS_EXPORTS_H
 #define STATISTICS_EXPORTS_H
 
-#include "SnifferExports.h"
+#ifdef WAREHOUND_SNIFFER_EXPORTS
+#    define SNIFFER_API __declspec(dllexport)
+#else
+#    define SNIFFER_API __declspec(dllimport)
+#endif
+
 #include <cstdint>
 
 //=============================================================================

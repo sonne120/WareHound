@@ -1,3 +1,4 @@
+#define WAREHOUND_SNIFFER_EXPORTS
 #define _CRT_SECURE_NO_WARNINGS
 #include "StatisticsExports.h"
 #include "FlowTracker.h"
