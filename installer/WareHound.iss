@@ -67,7 +67,6 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 [Code]
 var
   NpcapPage: TInputOptionWizardPage;
-  DotNetPage: TOutputMsgWizardPage;
 
 function IsDotNet8Installed: Boolean;
 var
@@ -81,35 +80,50 @@ begin
   Result := FileExists(ExpandConstant('{sys}\npcap.dll')) or FileExists(ExpandConstant('{sys}\wpcap.dll'));
 end;
 
-procedure InitializeWizard;
+function IfThen(Condition: Boolean; TrueValue, FalseValue: String): String;
 begin
-  // Create .NET Runtime check page
-  DotNetPage := CreateOutputMsgPage(wpWelcome,
-    '.NET Runtime Check',
-    'Checking for required .NET 8.0 Desktop Runtime...',
-    '');
-    
-  if IsDotNet8Installed then
-    DotNetPage.Msg1Label.Caption := '[OK] .NET 8.0 Runtime is installed.'
+  if Condition then
+    Result := TrueValue
   else
-    DotNetPage.Msg1Label.Caption := '[WARNING] .NET 8.0 Desktop Runtime not found!' + #13#10 + #13#10 +
-      'Please download and install from:' + #13#10 +
-      'https://dotnet.microsoft.com/download/dotnet/8.0' + #13#10 + #13#10 +
-      'Select ".NET Desktop Runtime" for Windows x64.';
+    Result := FalseValue;
+end;
+
+procedure InitializeWizard;
+var
+  DotNetStatus: String;
+  NpcapStatus: String;
+begin
+  // Check .NET status
+  if IsDotNet8Installed then
+    DotNetStatus := '[OK] .NET 8.0 Runtime is installed.'
+  else
+    DotNetStatus := '[WARNING] .NET 8.0 Desktop Runtime not found! Please install from https://dotnet.microsoft.com/download/dotnet/8.0';
+
+  // Check Npcap status
+  if IsNpcapInstalled then
+    NpcapStatus := '[OK] Packet capture driver detected.'
+  else
+    NpcapStatus := '[MISSING] No packet capture driver found.';
 
   // Create Npcap installation option page
-  NpcapPage := CreateInputOptionPage(DotNetPage.ID,
-    'Packet Capture Driver',
-    'Npcap is required for network packet capture.',
-    'WareHound requires Npcap (or WinPcap) to capture network packets.' + #13#10 + #13#10 +
-    'Current status: ' + 
-    IfThen(IsNpcapInstalled, '[OK] Packet capture driver detected.', '[MISSING] No packet capture driver found.'),
+  NpcapPage := CreateInputOptionPage(wpWelcome,
+    'Prerequisites Check',
+    'Checking required components...',
+    'WareHound requires the following components:' + #13#10 + #13#10 +
+    '.NET 8.0 Runtime: ' + DotNetStatus + #13#10 + #13#10 +
+    'Npcap Driver: ' + NpcapStatus + #13#10 + #13#10 +
+    'Select an option below:',
     True, False);
     
   if not IsNpcapInstalled then
   begin
-    NpcapPage.Add('Download and install Npcap after setup completes');
+    NpcapPage.Add('Open Npcap download page after setup completes');
     NpcapPage.Add('I will install Npcap manually later');
+    NpcapPage.SelectedValueIndex := 0;
+  end
+  else
+  begin
+    NpcapPage.Add('Continue with installation');
     NpcapPage.SelectedValueIndex := 0;
   end;
 end;
@@ -126,12 +140,4 @@ begin
       ShellExec('open', 'https://npcap.com/#download', '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
     end;
   end;
-end;
-
-function IfThen(Condition: Boolean; TrueValue, FalseValue: String): String;
-begin
-  if Condition then
-    Result := TrueValue
-  else
-    Result := FalseValue;
 end;
