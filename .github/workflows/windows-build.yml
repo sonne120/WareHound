@@ -59,6 +59,46 @@ jobs:
           ForEach-Object {
             Write-Host "  $($_.FullName)"
           }
+
+    - name: Download and Install Inno Setup
+      shell: powershell
+      run: |
+        Write-Host "Downloading Inno Setup..."
+        $innoUrl = "https://jrsoftware.org/download.php/is.exe"
+        $installerPath = "$env:TEMP\innosetup.exe"
+        Invoke-WebRequest -Uri $innoUrl -OutFile $installerPath
+        Write-Host "Installing Inno Setup silently..."
+        Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-" -Wait
+        Write-Host "[OK] Inno Setup installed"
+
+    - name: Build Windows Installer
+      shell: powershell
+      run: |
+        $innoCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+        if (-not (Test-Path $innoCompiler)) {
+            Write-Host "[ERROR] Inno Setup compiler not found at: $innoCompiler"
+            exit 1
+        }
+        
+        Write-Host "Building Windows installer..."
+        New-Item -ItemType Directory -Force -Path "installer-output"
+        
+        & $innoCompiler "installer\WareHound.iss"
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[OK] Installer created successfully"
+            Get-ChildItem "installer-output" | ForEach-Object { Write-Host "  $($_.Name)" }
+        } else {
+            Write-Host "[ERROR] Installer build failed"
+            exit 1
+        }
+
+    - name: Upload Windows Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: WareHound-Installer
+        path: installer-output/*.exe
+        retention-days: 30
           
     - name: Package artifacts
       shell: powershell
