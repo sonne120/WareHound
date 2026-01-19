@@ -1,0 +1,87 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+using WareHound.UI.Infrastructure.Services;
+
+namespace WareHound.UI.IPC.Ptr
+{
+    /// <summary>
+    /// P/Invoke wrapper for fnCPPDLL - initializes the capture stream
+    /// </summary>
+    public static class StreamPtr
+    {
+        private static ILoggerService? _logger;
+
+        public static void SetLogger(ILoggerService logger) => _logger = logger;
+
+        private const string DllName = "WareHound.Sniffer.dll";
+
+        [DllImport(DllName, CallingConvention = CallingConvention.StdCall, EntryPoint = "fnCPPDLL")]
+        private static extern void fnCPPDLL(int dev);
+
+        private static readonly object _sync = new();
+        private static bool _isInitialized;
+        private static Thread? _workerThread;
+        private static int _activeDevice = -1;
+
+        /// <summary>
+        /// Whether the stream has been initialized
+        /// </summary>
+        public static bool IsLoaded => _isInitialized;
+
+        /// <summary>
+        /// Whether the capture thread is currently running
+        /// </summary>
+        public static bool IsRunning => _workerThread is { IsAlive: true };
+
+        /// <summary>
+        /// Starts the capture stream on the specified device.
+        /// </summary>
+        /// <param name="deviceIndex">The device index to capture on</param>
+        public static void StartStream(int deviceIndex)
+        {
+            lock (_sync)
+            {
+                if (_isInitialized)
+                    return;
+
+                _activeDevice = deviceIndex;
+                _workerThread = new Thread(() =>
+                {
+                    try
+                    {
+                        fnCPPDLL(deviceIndex);
+                    }
+                    catch (DllNotFoundException ex)
+                    {
+                        _logger?.LogError($"[StreamPtr] ERROR: DLL not found: {ex.Message}", ex);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError($"[StreamPtr] Worker thread error: {ex.GetType().Name} - {ex.Message}", ex);
+                    }
+                })
+                {
+                    IsBackground = true,
+                    Name = "SnifferCaptureThread"
+                };
+
+                _workerThread.Start();
+                _isInitialized = true;
+            }
+        }
+
+        /// <summary>
+        /// Resets the stream state
+        /// </summary>
+        public static void Reset()
+        {
+            lock (_sync)
+            {
+                _isInitialized = false;
+                _activeDevice = -1;
+            }
+        }
+    }
+}

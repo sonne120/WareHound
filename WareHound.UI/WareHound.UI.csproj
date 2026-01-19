@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentWPF" Version="0.10.2" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.10" />
+    <PackageReference Include="Prism.Core" Version="8.1.97" />
+    <PackageReference Include="Prism.DryIoc" Version="8.1.97" />
+    <PackageReference Include="Prism.Wpf" Version="8.1.97" />
+  </ItemGroup>
+
+  <!-- C++ project must be built separately with MSBuild/Visual Studio -->
+  <!--
+  <ItemGroup>
+    <ProjectReference Include="..\WareHound.Sniffer\WareHound.Sniffer.vcxproj" />
+  </ItemGroup>
+  -->
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Determine solution directory (works when building standalone or via solution) -->
+  <PropertyGroup>
+    <WareHoundSolutionDir Condition="'$(SolutionDir)' != '' AND !$(SolutionDir.Contains('*Undefined*'))">$(SolutionDir)</WareHoundSolutionDir>
+    <WareHoundSolutionDir Condition="'$(WareHoundSolutionDir)' == ''">$(ProjectDir)..\</WareHoundSolutionDir>
+  </PropertyGroup>
+
+  <Target Name="CopyNativeDll" AfterTargets="Build">
+    <Copy SourceFiles="$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll')" />
+  </Target>
+
+</Project>
