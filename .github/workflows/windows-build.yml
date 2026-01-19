@@ -70,8 +70,8 @@ jobs:
         Copy-Item -Path "WareHound.UI\bin\${{ env.BUILD_PLATFORM }}\${{ env.BUILD_CONFIGURATION }}\net8.0-windows\*" `
                   -Destination $artifactDir -Recurse -Force
         
-        # Copy Sniffer DLL
-        Copy-Item -Path "WareHound.Sniffer\bin\${{ env.BUILD_CONFIGURATION }}\WareHound.Sniffer.dll" `
+        # Copy Sniffer DLL (output is at solution level bin folder)
+        Copy-Item -Path "bin\${{ env.BUILD_CONFIGURATION }}\WareHound.Sniffer.dll" `
                   -Destination $artifactDir -Force
         
         # Create README for package
