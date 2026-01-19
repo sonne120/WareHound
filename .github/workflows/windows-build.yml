@@ -180,39 +180,39 @@ jobs:
         
         # Create README for package
         $readmeContent = @"
-WareHound - Network Packet Analyzer
-====================================
+        WareHound - Network Packet Analyzer
+        ====================================
 
-Prerequisites:
-- Windows 10/11 (64-bit)
-- .NET 8.0 Runtime
-- Npcap or WinPcap driver (installer included or install separately)
-- Administrator privileges for packet capture
+        Prerequisites:
+        - Windows 10/11 (64-bit)
+        - .NET 8.0 Runtime
+        - Npcap or WinPcap driver (installer included or install separately)
+        - Administrator privileges for packet capture
 
-Installation:
-1. Install .NET 8.0 Runtime if not already installed
-2. Install Npcap (recommended) or WinPcap:
-   - Download from: https://npcap.com/
-   - Run installer with administrator privileges
-   - Enable WinPcap compatibility mode during installation
-   
-3. Run WareHound.UI.exe with administrator privileges
+        Installation:
+        1. Install .NET 8.0 Runtime if not already installed
+        2. Install Npcap (recommended) or WinPcap:
+           - Download from: https://npcap.com/
+           - Run installer with administrator privileges
+           - Enable WinPcap compatibility mode during installation
+           
+        3. Run WareHound.UI.exe with administrator privileges
 
-Required DLLs (installed by Npcap/WinPcap):
-- C:\Windows\System32\npcap.dll (or wpcap.dll)
-- C:\Windows\System32\Packet.dll
-- C:\Windows\System32\drivers\npcap.sys (or npf.sys)
+        Required DLLs (installed by Npcap/WinPcap):
+        - C:\Windows\System32\npcap.dll (or wpcap.dll)
+        - C:\Windows\System32\Packet.dll
+        - C:\Windows\System32\drivers\npcap.sys (or npf.sys)
 
-For 32-bit compatibility:
-- C:\Windows\SysWOW64\npcap.dll (or wpcap.dll)
-- C:\Windows\SysWOW64\Packet.dll
+        For 32-bit compatibility:
+        - C:\Windows\SysWOW64\npcap.dll (or wpcap.dll)
+        - C:\Windows\SysWOW64\Packet.dll
 
-Usage:
-1. Launch WareHound.UI.exe as administrator
-2. Select network interface
-3. Click Start to begin packet capture
-4. View captured packets and statistics
-"@
+        Usage:
+        1. Launch WareHound.UI.exe as administrator
+        2. Select network interface
+        3. Click Start to begin packet capture
+        4. View captured packets and statistics
+        "@
         
         $readmeContent | Out-File -FilePath "$artifactDir\README.txt" -Encoding UTF8
         
@@ -227,113 +227,113 @@ Usage:
       shell: powershell
       run: |
         $scriptContent = @'
-# WareHound Installation Script
-# Run this script as Administrator
+        # WareHound Installation Script
+        # Run this script as Administrator
 
-param(
-    [switch]$SkipNpcap
-)
+        param(
+            [switch]$SkipNpcap
+        )
 
-Write-Host "WareHound Installation Script" -ForegroundColor Cyan
-Write-Host "==============================`n"
+        Write-Host "WareHound Installation Script" -ForegroundColor Cyan
+        Write-Host "==============================`n"
 
-# Check if running as administrator
-$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        # Check if running as administrator
+        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-if (-not $isAdmin) {
-    Write-Host "ERROR: This script must be run as Administrator!" -ForegroundColor Red
-    Write-Host "Right-click PowerShell and select 'Run as Administrator'" -ForegroundColor Yellow
-    Read-Host "Press Enter to exit"
-    exit 1
-}
-
-# Check for .NET 8.0 Runtime
-Write-Host "Checking for .NET 8.0 Runtime..." -ForegroundColor Yellow
-$dotnetVersion = dotnet --list-runtimes 2>$null | Select-String "Microsoft.WindowsDesktop.App 8.0"
-
-if (-not $dotnetVersion) {
-    Write-Host "WARNING: .NET 8.0 Desktop Runtime not found!" -ForegroundColor Red
-    Write-Host "Download from: https://dotnet.microsoft.com/download/dotnet/8.0" -ForegroundColor Yellow
-    $continue = Read-Host "Continue anyway? (y/n)"
-    if ($continue -ne 'y') { exit 1 }
-} else {
-    Write-Host "✓ .NET 8.0 Runtime found" -ForegroundColor Green
-}
-
-# Check for Npcap/WinPcap
-Write-Host "`nChecking for packet capture drivers..." -ForegroundColor Yellow
-
-$npcapInstalled = Test-Path "C:\Windows\System32\npcap.dll"
-$winpcapInstalled = Test-Path "C:\Windows\System32\wpcap.dll"
-$packetDllInstalled = Test-Path "C:\Windows\System32\Packet.dll"
-
-if ($npcapInstalled) {
-    Write-Host "✓ Npcap is installed" -ForegroundColor Green
-} elseif ($winpcapInstalled) {
-    Write-Host "✓ WinPcap is installed (legacy)" -ForegroundColor Green
-} elseif (-not $SkipNpcap) {
-    Write-Host "✗ No packet capture driver found!" -ForegroundColor Red
-    Write-Host "`nNpcap installation is required for packet capture." -ForegroundColor Yellow
-    Write-Host "Download from: https://npcap.com/dist/npcap-1.79.exe" -ForegroundColor Cyan
-    Write-Host "`nInstallation options:"
-    Write-Host "  1. Enable 'Install Npcap in WinPcap API-compatible Mode'"
-    Write-Host "  2. Enable 'Support loopback traffic'"
-    Write-Host ""
-    
-    $install = Read-Host "Would you like to download and install Npcap now? (y/n)"
-    if ($install -eq 'y') {
-        Write-Host "`nDownloading Npcap..." -ForegroundColor Yellow
-        $npcapUrl = "https://npcap.com/dist/npcap-1.79.exe"
-        $installerPath = "$env:TEMP\npcap-installer.exe"
-        
-        try {
-            Invoke-WebRequest -Uri $npcapUrl -OutFile $installerPath
-            Write-Host "✓ Download complete" -ForegroundColor Green
-            Write-Host "`nLaunching Npcap installer..." -ForegroundColor Yellow
-            Start-Process -FilePath $installerPath -Wait
-            
-            # Verify installation
-            if (Test-Path "C:\Windows\System32\npcap.dll") {
-                Write-Host "✓ Npcap installed successfully" -ForegroundColor Green
-            } else {
-                Write-Host "✗ Npcap installation may have failed" -ForegroundColor Red
-            }
-        } catch {
-            Write-Host "✗ Download failed: $_" -ForegroundColor Red
+        if (-not $isAdmin) {
+            Write-Host "ERROR: This script must be run as Administrator!" -ForegroundColor Red
+            Write-Host "Right-click PowerShell and select 'Run as Administrator'" -ForegroundColor Yellow
+            Read-Host "Press Enter to exit"
+            exit 1
         }
-    }
-} else {
-    Write-Host "Skipping Npcap check (as requested)" -ForegroundColor Yellow
-}
 
-# Verify all required DLLs
-Write-Host "`nVerifying packet capture components..." -ForegroundColor Yellow
+        # Check for .NET 8.0 Runtime
+        Write-Host "Checking for .NET 8.0 Runtime..." -ForegroundColor Yellow
+        $dotnetVersion = dotnet --list-runtimes 2>$null | Select-String "Microsoft.WindowsDesktop.App 8.0"
 
-$components = @{
-    "npcap.dll or wpcap.dll" = (Test-Path "C:\Windows\System32\npcap.dll") -or (Test-Path "C:\Windows\System32\wpcap.dll")
-    "Packet.dll" = Test-Path "C:\Windows\System32\Packet.dll"
-    "npcap.sys or npf.sys" = (Test-Path "C:\Windows\System32\drivers\npcap.sys") -or (Test-Path "C:\Windows\System32\drivers\npf.sys")
-}
+        if (-not $dotnetVersion) {
+            Write-Host "WARNING: .NET 8.0 Desktop Runtime not found!" -ForegroundColor Red
+            Write-Host "Download from: https://dotnet.microsoft.com/download/dotnet/8.0" -ForegroundColor Yellow
+            $continue = Read-Host "Continue anyway? (y/n)"
+            if ($continue -ne 'y') { exit 1 }
+        } else {
+            Write-Host "✓ .NET 8.0 Runtime found" -ForegroundColor Green
+        }
 
-$allPresent = $true
-foreach ($component in $components.GetEnumerator()) {
-    if ($component.Value) {
-        Write-Host "  ✓ $($component.Key)" -ForegroundColor Green
-    } else {
-        Write-Host "  ✗ $($component.Key)" -ForegroundColor Red
-        $allPresent = $false
-    }
-}
+        # Check for Npcap/WinPcap
+        Write-Host "`nChecking for packet capture drivers..." -ForegroundColor Yellow
 
-if ($allPresent) {
-    Write-Host "`n✓ All packet capture components are installed!" -ForegroundColor Green
-    Write-Host "`nYou can now run WareHound.UI.exe as Administrator" -ForegroundColor Cyan
-} else {
-    Write-Host "`n⚠ Some components are missing. Packet capture may not work." -ForegroundColor Yellow
-}
+        $npcapInstalled = Test-Path "C:\Windows\System32\npcap.dll"
+        $winpcapInstalled = Test-Path "C:\Windows\System32\wpcap.dll"
+        $packetDllInstalled = Test-Path "C:\Windows\System32\Packet.dll"
 
-Write-Host "`nInstallation check complete!" -ForegroundColor Cyan
-Read-Host "`nPress Enter to exit"
+        if ($npcapInstalled) {
+            Write-Host "✓ Npcap is installed" -ForegroundColor Green
+        } elseif ($winpcapInstalled) {
+            Write-Host "✓ WinPcap is installed (legacy)" -ForegroundColor Green
+        } elseif (-not $SkipNpcap) {
+            Write-Host "✗ No packet capture driver found!" -ForegroundColor Red
+            Write-Host "`nNpcap installation is required for packet capture." -ForegroundColor Yellow
+            Write-Host "Download from: https://npcap.com/dist/npcap-1.79.exe" -ForegroundColor Cyan
+            Write-Host "`nInstallation options:"
+            Write-Host "  1. Enable 'Install Npcap in WinPcap API-compatible Mode'"
+            Write-Host "  2. Enable 'Support loopback traffic'"
+            Write-Host ""
+            
+            $install = Read-Host "Would you like to download and install Npcap now? (y/n)"
+            if ($install -eq 'y') {
+                Write-Host "`nDownloading Npcap..." -ForegroundColor Yellow
+                $npcapUrl = "https://npcap.com/dist/npcap-1.79.exe"
+                $installerPath = "$env:TEMP\npcap-installer.exe"
+                
+                try {
+                    Invoke-WebRequest -Uri $npcapUrl -OutFile $installerPath
+                    Write-Host "✓ Download complete" -ForegroundColor Green
+                    Write-Host "`nLaunching Npcap installer..." -ForegroundColor Yellow
+                    Start-Process -FilePath $installerPath -Wait
+                    
+                    # Verify installation
+                    if (Test-Path "C:\Windows\System32\npcap.dll") {
+                        Write-Host "✓ Npcap installed successfully" -ForegroundColor Green
+                    } else {
+                        Write-Host "✗ Npcap installation may have failed" -ForegroundColor Red
+                    }
+                } catch {
+                    Write-Host "✗ Download failed: $_" -ForegroundColor Red
+                }
+            }
+        } else {
+            Write-Host "Skipping Npcap check (as requested)" -ForegroundColor Yellow
+        }
+
+        # Verify all required DLLs
+        Write-Host "`nVerifying packet capture components..." -ForegroundColor Yellow
+
+        $components = @{
+            "npcap.dll or wpcap.dll" = (Test-Path "C:\Windows\System32\npcap.dll") -or (Test-Path "C:\Windows\System32\wpcap.dll")
+            "Packet.dll" = Test-Path "C:\Windows\System32\Packet.dll"
+            "npcap.sys or npf.sys" = (Test-Path "C:\Windows\System32\drivers\npcap.sys") -or (Test-Path "C:\Windows\System32\drivers\npf.sys")
+        }
+
+        $allPresent = $true
+        foreach ($component in $components.GetEnumerator()) {
+            if ($component.Value) {
+                Write-Host "  ✓ $($component.Key)" -ForegroundColor Green
+            } else {
+                Write-Host "  ✗ $($component.Key)" -ForegroundColor Red
+                $allPresent = $false
+            }
+        }
+
+        if ($allPresent) {
+            Write-Host "`n✓ All packet capture components are installed!" -ForegroundColor Green
+            Write-Host "`nYou can now run WareHound.UI.exe as Administrator" -ForegroundColor Cyan
+        } else {
+            Write-Host "`n⚠ Some components are missing. Packet capture may not work." -ForegroundColor Yellow
+        }
+
+        Write-Host "`nInstallation check complete!" -ForegroundColor Cyan
+        Read-Host "`nPress Enter to exit"
         '@
         
         $scriptContent | Out-File -FilePath "WareHound-Package\Install.ps1" -Encoding UTF8
