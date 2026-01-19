@@ -179,41 +179,42 @@ jobs:
                   -Destination $artifactDir -Force
         
         # Create README for package
-        @"
-WareHound - Network Packet Analyzer
-====================================
-
-Prerequisites:
-- Windows 10/11 (64-bit)
-- .NET 8.0 Runtime
-- Npcap or WinPcap driver (installer included or install separately)
-- Administrator privileges for packet capture
-
-Installation:
-1. Install .NET 8.0 Runtime if not already installed
-2. Install Npcap (recommended) or WinPcap:
-   - Download from: https://npcap.com/
-   - Run installer with administrator privileges
-   - Enable WinPcap compatibility mode during installation
-   
-3. Run WareHound.UI.exe with administrator privileges
-
-Required DLLs (installed by Npcap/WinPcap):
-- C:\Windows\System32\npcap.dll (or wpcap.dll)
-- C:\Windows\System32\Packet.dll
-- C:\Windows\System32\drivers\npcap.sys (or npf.sys)
-
-For 32-bit compatibility:
-- C:\Windows\SysWOW64\npcap.dll (or wpcap.dll)
-- C:\Windows\SysWOW64\Packet.dll
-
-Usage:
-1. Launch WareHound.UI.exe as administrator
-2. Select network interface
-3. Click Start to begin packet capture
-4. View captured packets and statistics
-
-"@ | Out-File -FilePath "$artifactDir\README.txt" -Encoding UTF8
+        $readmeContent = @"
+        WareHound - Network Packet Analyzer
+        ====================================
+        
+        Prerequisites:
+        - Windows 10/11 (64-bit)
+        - .NET 8.0 Runtime
+        - Npcap or WinPcap driver (installer included or install separately)
+        - Administrator privileges for packet capture
+        
+        Installation:
+        1. Install .NET 8.0 Runtime if not already installed
+        2. Install Npcap (recommended) or WinPcap:
+           - Download from: https://npcap.com/
+           - Run installer with administrator privileges
+           - Enable WinPcap compatibility mode during installation
+           
+        3. Run WareHound.UI.exe with administrator privileges
+        
+        Required DLLs (installed by Npcap/WinPcap):
+        - C:\Windows\System32\npcap.dll (or wpcap.dll)
+        - C:\Windows\System32\Packet.dll
+        - C:\Windows\System32\drivers\npcap.sys (or npf.sys)
+        
+        For 32-bit compatibility:
+        - C:\Windows\SysWOW64\npcap.dll (or wpcap.dll)
+        - C:\Windows\SysWOW64\Packet.dll
+        
+        Usage:
+        1. Launch WareHound.UI.exe as administrator
+        2. Select network interface
+        3. Click Start to begin packet capture
+        4. View captured packets and statistics
+"@
+        
+        $readmeContent | Out-File -FilePath "$artifactDir\README.txt" -Encoding UTF8
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
