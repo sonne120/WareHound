@@ -51,7 +51,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 
 [Files]
 ; Main application files
-Source: "..\WareHound.UI\bin\x64\Release\net8.0-windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\WareHound.UI\bin\x64\Release\net8.0-windows\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Native sniffer DLL
 Source: "..\bin\Release\WareHound.Sniffer.dll"; DestDir: "{app}"; Flags: ignoreversion
 
