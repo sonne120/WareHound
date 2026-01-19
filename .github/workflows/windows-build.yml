@@ -153,7 +153,7 @@ jobs:
             $continue = Read-Host "Continue anyway? (y/n)"
             if ($continue -ne 'y') { exit 1 }
         } else {
-            Write-Host "✓ .NET 8.0 Runtime found" -ForegroundColor Green
+            Write-Host "[OK] .NET 8.0 Runtime found" -ForegroundColor Green
         }
 
         # Check for Npcap/WinPcap
@@ -164,11 +164,11 @@ jobs:
         $packetDllInstalled = Test-Path "C:\Windows\System32\Packet.dll"
 
         if ($npcapInstalled) {
-            Write-Host "✓ Npcap is installed" -ForegroundColor Green
+            Write-Host "[OK] Npcap is installed" -ForegroundColor Green
         } elseif ($winpcapInstalled) {
-            Write-Host "✓ WinPcap is installed (legacy)" -ForegroundColor Green
+            Write-Host "[OK] WinPcap is installed (legacy)" -ForegroundColor Green
         } elseif (-not $SkipNpcap) {
-            Write-Host "✗ No packet capture driver found!" -ForegroundColor Red
+            Write-Host "[MISSING] No packet capture driver found!" -ForegroundColor Red
             Write-Host "`nNpcap installation is required for packet capture." -ForegroundColor Yellow
             Write-Host "Download from: https://npcap.com/dist/npcap-1.79.exe" -ForegroundColor Cyan
             Write-Host "`nInstallation options:"
@@ -184,18 +184,18 @@ jobs:
                 
                 try {
                     Invoke-WebRequest -Uri $npcapUrl -OutFile $installerPath
-                    Write-Host "✓ Download complete" -ForegroundColor Green
+                    Write-Host "[OK] Download complete" -ForegroundColor Green
                     Write-Host "`nLaunching Npcap installer..." -ForegroundColor Yellow
                     Start-Process -FilePath $installerPath -Wait
                     
                     # Verify installation
                     if (Test-Path "C:\Windows\System32\npcap.dll") {
-                        Write-Host "✓ Npcap installed successfully" -ForegroundColor Green
+                        Write-Host "[OK] Npcap installed successfully" -ForegroundColor Green
                     } else {
-                        Write-Host "✗ Npcap installation may have failed" -ForegroundColor Red
+                        Write-Host "[FAILED] Npcap installation may have failed" -ForegroundColor Red
                     }
                 } catch {
-                    Write-Host "✗ Download failed: $_" -ForegroundColor Red
+                    Write-Host "[FAILED] Download failed: $_" -ForegroundColor Red
                 }
             }
         } else {
@@ -214,18 +214,18 @@ jobs:
         $allPresent = $true
         foreach ($component in $components.GetEnumerator()) {
             if ($component.Value) {
-                Write-Host "  ✓ $($component.Key)" -ForegroundColor Green
+                Write-Host "  [OK] $($component.Key)" -ForegroundColor Green
             } else {
-                Write-Host "  ✗ $($component.Key)" -ForegroundColor Red
+                Write-Host "  [MISSING] $($component.Key)" -ForegroundColor Red
                 $allPresent = $false
             }
         }
 
         if ($allPresent) {
-            Write-Host "`n✓ All packet capture components are installed!" -ForegroundColor Green
+            Write-Host "`n[OK] All packet capture components are installed!" -ForegroundColor Green
             Write-Host "`nYou can now run WareHound.UI.exe as Administrator" -ForegroundColor Cyan
         } else {
-            Write-Host "`n⚠ Some components are missing. Packet capture may not work." -ForegroundColor Yellow
+            Write-Host "`n[WARNING] Some components are missing. Packet capture may not work." -ForegroundColor Yellow
         }
 
         Write-Host "`nInstallation check complete!" -ForegroundColor Cyan
@@ -233,7 +233,7 @@ jobs:
         '@
         
         $scriptContent | Out-File -FilePath "WareHound-Package\Install.ps1" -Encoding UTF8
-        Write-Host "✓ Installation script created: Install.ps1"
+        Write-Host "[OK] Installation script created: Install.ps1"
         
     - name: Upload installer script
       uses: actions/upload-artifact@v4
