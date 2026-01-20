@@ -53,6 +53,7 @@
                     <!-- Menu Items -->
                     <StackPanel Grid.Row="1" Margin="0,20,0,20">
                         <ctls:MenuItem x:Name="btnCapture"
+                                       AutomationProperties.Name="Capture"
                                        GroupName="NavMenu" 
                                        Icon="{StaticResource CaptureIcon}" 
                                        IconWidth="18" 
@@ -64,6 +65,7 @@
                                        MouseLeave="NavButton_MouseLeave"/>
                         
                         <ctls:MenuItem x:Name="btnDashboard"
+                                       AutomationProperties.Name="Dashboard"
                                        GroupName="NavMenu" 
                                        Icon="{StaticResource DashboardIcon}" 
                                        IconWidth="18" 
@@ -74,6 +76,7 @@
                                        MouseLeave="NavButton_MouseLeave"/>
                         
                         <ctls:MenuItem x:Name="btnStatistics"
+                                       AutomationProperties.Name="Statistics"
                                        GroupName="NavMenu" 
                                        Icon="{StaticResource StatisticsIcon}" 
                                        IconWidth="18" 
@@ -83,7 +86,19 @@
                                        MouseEnter="btnStatistics_MouseEnter" 
                                        MouseLeave="NavButton_MouseLeave"/>
                         
-                        <ctls:MenuItem x:Name="btnSettings"
+                        <ctls:MenuItem x:Name="btnLogs"
+                                       AutomationProperties.Name="Logs"
+                                       GroupName="NavMenu" 
+                                       Icon="{StaticResource LogIcon}" 
+                                       IconWidth="18" 
+                                       Text="Logs"
+                                       Command="{Binding NavigateCommand}"
+                                       CommandParameter="LogView"
+                                       MouseEnter="btnLogs_MouseEnter" 
+                                       MouseLeave="NavButton_MouseLeave"/>
+                        
+                         <ctls:MenuItem x:Name="btnSettings"
+                                       AutomationProperties.Name="Settings"
                                        GroupName="NavMenu" 
                                        Icon="{StaticResource SettingsIcon}" 
                                        IconWidth="18" 
@@ -189,7 +204,8 @@
                                     HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Margin="16,0,0,0">
                             <!-- Interface Selection -->
-                            <ComboBox Width="280" Height="26"
+                            <ComboBox Style="{StaticResource ModernComboBoxStyle}"
+                                      Width="280" Height="26"
                                       ItemsSource="{Binding Devices}" 
                                       SelectedItem="{Binding SelectedDevice}"
                                       DisplayMemberPath="DisplayName"
@@ -200,7 +216,7 @@
                                     Tag="{StaticResource PlayIcon}"
                                     Command="{Binding StartCaptureCommand}"
                                     ToolTip="Start Capture"
-                                    Margin="12,0,0,0"/>
+                                    Margin="8,0,0,0"/>
                             <Button Style="{StaticResource CaptureControlButtonStyle}"
                                     Tag="{StaticResource StopIcon}"
                                     Command="{Binding StopCaptureCommand}"
@@ -211,6 +227,35 @@
                                     </Style>
                                 </Button.Resources>
                             </Button>
+
+                            <Separator Style="{StaticResource VerticalSeparatorStyle}" Margin="12,6"/>
+
+                            <!-- Clear Button -->
+                            <Button x:Name="ClearButton" 
+                                    AutomationProperties.AutomationId="ClearButton"
+                                    Style="{StaticResource ModernButtonStyle}"
+                                    Command="{Binding ClearCommand}" 
+                                    Content="Clear"
+                                    Height="26"
+                                    Margin="0,0,16,0"
+                                    Padding="16,0"/>
+
+                            <!-- Filter Box -->
+                            <Grid VerticalAlignment="Center">
+                                <TextBlock Text="Filter:" VerticalAlignment="Center" 
+                                           Foreground="{StaticResource TextSecondaryBrush}" 
+                                           Margin="10,0,0,0" 
+                                           IsHitTestVisible="False"
+                                           Panel.ZIndex="1"
+                                           Visibility="{Binding FilterText, Converter={StaticResource NullToVisibility}, ConverterParameter=Invert}"/>
+                                <TextBox x:Name="FilterTextBox" 
+                                         AutomationProperties.AutomationId="FilterTextBox"
+                                         Style="{StaticResource ModernTextBoxStyle}"
+                                         Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" 
+                                         Width="180" Height="26"
+                                         Padding="8,0"
+                                         VerticalContentAlignment="Center"/>
+                            </Grid>
                             
                             <!-- Packet Count -->
                             <TextBlock Margin="16,0,0,0"

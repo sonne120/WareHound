@@ -13,9 +13,6 @@ using WareHound.UI.Infrastructure.Services;
 
 namespace WareHound.UI.ViewModels
 {
-    /// <summary>
-    /// ViewModel for the packet capture view
-    /// </summary>
     public class CaptureViewModel : BindableBase, INavigationAware, IDisposable
     {
         private readonly ISnifferService _snifferService;
@@ -30,6 +27,8 @@ namespace WareHound.UI.ViewModels
         private ObservableCollection<TreeNode> _packetDetails = new();
         private string _packetHexDump = "";
         private bool _disposed;
+        private bool _autoScroll = true;
+        private bool _showMacAddresses = true;
 
         // Async packet consumption
         private CancellationTokenSource? _captureCts;
@@ -37,6 +36,18 @@ namespace WareHound.UI.ViewModels
 
         public ObservableCollection<PacketInfo> Packets { get; } = new();
         public ObservableCollection<NetworkDevice> Devices => _snifferService.Devices;
+
+        public bool AutoScroll
+        {
+            get => _autoScroll;
+            set => SetProperty(ref _autoScroll, value);
+        }
+
+        public bool ShowMacAddresses
+        {
+            get => _showMacAddresses;
+            set => SetProperty(ref _showMacAddresses, value);
+        }
 
         public NetworkDevice? SelectedDevice
         {
@@ -67,13 +78,11 @@ namespace WareHound.UI.ViewModels
                 }
             }
         }
-
         public ObservableCollection<TreeNode> PacketDetails
         {
             get => _packetDetails;
             set => SetProperty(ref _packetDetails, value);
         }
-
         public string PacketHexDump
         {
             get => _packetHexDump;
@@ -93,13 +102,17 @@ namespace WareHound.UI.ViewModels
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
             _eventAggregator.GetEvent<CaptureStateChangedEvent>().Subscribe(OnCaptureStateChanged);
+            _eventAggregator.GetEvent<ClearPacketsEvent>().Subscribe(Clear);
+            _eventAggregator.GetEvent<FilterChangedEvent>().Subscribe(filter => FilterText = filter);
+            _eventAggregator.GetEvent<AutoScrollChangedEvent>().Subscribe(enabled => AutoScroll = enabled);
+            _eventAggregator.GetEvent<ShowMacAddressesChangedEvent>().Subscribe(enabled => ShowMacAddresses = enabled);
+            _eventAggregator.GetEvent<TimeFormatChangedEvent>().Subscribe(OnTimeFormatChanged);
 
             ToggleCaptureCommand = new DelegateCommand(ToggleCapture);
             ClearCommand = new DelegateCommand(Clear);
             SaveToDashboardCommand = new DelegateCommand(SaveToDashboard, () => Packets.Count > 0);
             CopyCommand = new DelegateCommand<string>(Copy);
             
-            // Sync with current service state in case we were navigated to while capturing
             if (_snifferService.IsCapturing)
             {
                OnCaptureStateChanged(true);
@@ -109,6 +122,15 @@ namespace WareHound.UI.ViewModels
 
             if (Devices.Count > 0)
                 SelectedDevice = Devices[0];
+        }
+
+        private void OnTimeFormatChanged(TimeFormatType format)
+        {
+            PacketInfo.SetTimeFormat(format);
+            foreach (var packet in Packets)
+            {
+                packet.NotifyTimeDisplayChanged();
+            }
         }
 
         private void OnCaptureStateChanged(bool isCapturing)
@@ -134,7 +156,6 @@ namespace WareHound.UI.ViewModels
 
         private void ToggleCapture()
         {
-            // Logic for STOPPING capture
             if (IsCapturing)
             {
                 // 1. Cancel the packet consumer task (background loop)
@@ -146,7 +167,6 @@ namespace WareHound.UI.ViewModels
                 // 3. Update UI state (enables/disables buttons)
                 IsCapturing = false;
             }
-            // Logic for STARTING capture
             else
             {
                 // 1. Validation: Ensure a device is selected
@@ -157,26 +177,20 @@ namespace WareHound.UI.ViewModels
                     return;
                 }
 
-                // 2. Start the service. This initializes the native sniffer and the data channel.
+                // 2. Start the service. 
                 _snifferService.StartCapture(SelectedDevice.Index);
-
-                // 3. CRITICAL CHECK: Did the service actually start?
-                // If StartCapture failed (e.g. invalid device, permission error), IsCapturing will be false.
-                // We must NOT enter the capturing state in the UI if the backend failed.
+             
                 if (_snifferService.IsCapturing)
                 {
                     IsCapturing = true;
                     
-                    // 4. Initialize cancellation token for the new capture session
                     _captureCts = new CancellationTokenSource();
                     
-                    // 5. Fire-and-forget the packet consumer loop
-                    // This pulls packets from the Service's Channel and updates the UI
+                    // 5. Fire-and-forget the packet consumer loop                  
                     _ = ConsumePacketsAsync(_captureCts.Token);
                 }
                 else
-                {
-                    // Service failed to start. Ensure UI reflects stopped state.
+                {                 
                     IsCapturing = false; 
                 }
             }
@@ -222,15 +236,14 @@ namespace WareHound.UI.ViewModels
         {
             try
             {
-                // Consume batches directly from the service
                 await foreach (var batch in _snifferService.GetPacketBatchesAsync(ct))
                 {
                     await FlushBatchToUIAsync(batch);
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                // Expected on stop capture
+                _logger.LogError($"[ConsumePacketsAsync] Error: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
@@ -246,12 +259,10 @@ namespace WareHound.UI.ViewModels
             {
                 foreach (var p in packetsToAdd)
                 {
-                    Packets.Add(p);
-                    // Publish packet event for statistics tracking
+                    Packets.Add(p);               
                     _eventAggregator.GetEvent<PacketCapturedEvent>().Publish(p);
                 }
 
-                // Only raise when transitioning from empty to non-empty
                 if (!_hasPackets && Packets.Count > 0)
                 {
                     _hasPackets = true;

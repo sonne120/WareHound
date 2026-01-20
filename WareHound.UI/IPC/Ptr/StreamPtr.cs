@@ -6,9 +6,6 @@ using WareHound.UI.Infrastructure.Services;
 
 namespace WareHound.UI.IPC.Ptr
 {
-    /// <summary>
-    /// P/Invoke wrapper for fnCPPDLL - initializes the capture stream
-    /// </summary>
     public static class StreamPtr
     {
         private static ILoggerService? _logger;
@@ -73,12 +70,29 @@ namespace WareHound.UI.IPC.Ptr
         }
 
         /// <summary>
-        /// Resets the stream state
+        /// Resets the stream state and waits for the worker thread to terminate
         /// </summary>
         public static void Reset()
         {
             lock (_sync)
             {
+                // Wait for the worker thread to finish if it's still running
+                if (_workerThread is { IsAlive: true })
+                {
+                    _logger?.LogDebug("[StreamPtr] Waiting for worker thread to terminate...");
+                    _workerThread.Join(2000); // Wait up to 2 seconds
+                    
+                    if (_workerThread.IsAlive)
+                    {
+                        _logger?.LogDebug("[StreamPtr] Worker thread did not terminate in time");
+                    }
+                    else
+                    {
+                        _logger?.LogDebug("[StreamPtr] Worker thread terminated successfully");
+                    }
+                }
+                
+                _workerThread = null;
                 _isInitialized = false;
                 _activeDevice = -1;
             }

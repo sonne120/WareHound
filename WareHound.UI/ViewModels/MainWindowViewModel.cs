@@ -65,6 +65,20 @@ namespace WareHound.UI.ViewModels
         public DelegateCommand<string> NavigateCommand { get; }
         public DelegateCommand StartCaptureCommand { get; }
         public DelegateCommand StopCaptureCommand { get; }
+        public DelegateCommand ClearCommand { get; }
+
+        private string _filterText = "";
+        public string FilterText
+        {
+            get => _filterText;
+            set
+            {
+                if (SetProperty(ref _filterText, value))
+                {
+                    _eventAggregator.GetEvent<FilterChangedEvent>().Publish(value);
+                }
+            }
+        }
 
         public MainWindowViewModel(IRegionManager regionManager, ISnifferService snifferService, IEventAggregator eventAggregator)
         {
@@ -78,6 +92,7 @@ namespace WareHound.UI.ViewModels
                 .ObservesProperty(() => SelectedDevice);
             StopCaptureCommand = new DelegateCommand(StopCapture, CanStopCapture)
                 .ObservesProperty(() => IsCapturing);
+            ClearCommand = new DelegateCommand(ClearPackets);
 
             // Subscribe to packet events
             //_snifferService.PacketReceived += OnPacketReceived;
@@ -89,9 +104,15 @@ namespace WareHound.UI.ViewModels
 
             CurrentTime = DateTime.Now;
 
-            // Select first device if available
+            // Select first device 
             if (Devices.Count > 0)
                 SelectedDevice = Devices[0];
+        }
+
+        private void ClearPackets()
+        {
+            _eventAggregator.GetEvent<ClearPacketsEvent>().Publish();
+            PacketCount = 0;
         }
 
         private void Navigate(string viewName)
@@ -107,7 +128,6 @@ namespace WareHound.UI.ViewModels
 
             _snifferService.StartCapture();
             
-            // Check if service actually started
             if (_snifferService.IsCapturing)
             {
                 IsCapturing = true;

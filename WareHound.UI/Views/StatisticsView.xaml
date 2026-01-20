@@ -53,6 +53,9 @@
             
             <!-- Toggle between C# and C++ statistics -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="RefreshButton" AutomationProperties.AutomationId="RefreshButton"
+                        Style="{StaticResource ModernButtonStyle}"
+                        Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,16,0" Padding="16,6"/>
                 <TextBlock Text="C# Stats" VerticalAlignment="Center" Margin="0,0,8,0"
                            Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                 <ToggleButton IsChecked="{Binding UseNativeStatistics}" Width="48" Height="24"
@@ -67,7 +70,7 @@
         </Grid>
 
         <!-- Summary Cards -->
-        <Grid Grid.Row="1" Margin="0,0,0,16">
+        <Grid Grid.Row="1" Margin="0,0,0,16" AutomationProperties.AutomationId="PacketCounts">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -126,7 +129,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Protocol Breakdown -->
-            <Border Grid.Column="0" Style="{StaticResource StatCard}" Margin="0,0,8,0">
+            <Border Grid.Column="0" Style="{StaticResource StatCard}" Margin="0,0,8,0" AutomationProperties.AutomationId="ProtocolStats">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

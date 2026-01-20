@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using Prism.Commands;
 using Prism.Events;
@@ -20,6 +21,14 @@ public class StatisticsViewModel : BindableBase, INavigationAware
     private bool _isCapturing;
     private bool _useNativeStatistics;
     private System.Windows.Threading.DispatcherTimer? _refreshTimer;
+    
+    private readonly ConcurrentDictionary<string, long> _protocolCounts = new();
+    private readonly ConcurrentDictionary<string, long> _sourceIpCounts = new();
+    private readonly ConcurrentDictionary<string, long> _destIpCounts = new();
+    private readonly ConcurrentDictionary<int, long> _destPortCounts = new();
+    private long _packetCount;
+    private CancellationTokenSource? _statsCts;
+    private bool _isRefreshing;
 
     public CaptureStatistics Statistics
     {
@@ -83,9 +92,6 @@ public class StatisticsViewModel : BindableBase, INavigationAware
     public string StatsSourceText => _useNativeStatistics 
         ? "Using C++ Native Statistics (FlowTracker)" 
         : "Using C# Managed Statistics";
-
-
-    // Toggle between C# statistics (false) and C++ native statistics (true)
 
     public bool UseNativeStatistics
     {
@@ -163,40 +169,26 @@ public class StatisticsViewModel : BindableBase, INavigationAware
 
     private void OnPacketCaptured(PacketInfo packet)
     {
-        // Update protocol stats
+        Interlocked.Increment(ref _packetCount);
+        
         if (!string.IsNullOrEmpty(packet.Protocol))
         {
-            if (!Statistics.ProtocolBreakdown.ContainsKey(packet.Protocol))
-            {
-                Statistics.ProtocolBreakdown[packet.Protocol] = new ProtocolStats
-                {
-                    Protocol = packet.Protocol
-                };
-            }
-            Statistics.ProtocolBreakdown[packet.Protocol].PacketCount++;
+            _protocolCounts.AddOrUpdate(packet.Protocol, 1, (_, count) => count + 1);
         }
 
-        // Update IP stats
         if (!string.IsNullOrEmpty(packet.SourceIp))
         {
-            if (!Statistics.TopSourceIPs.ContainsKey(packet.SourceIp))
-                Statistics.TopSourceIPs[packet.SourceIp] = 0;
-            Statistics.TopSourceIPs[packet.SourceIp]++;
+            _sourceIpCounts.AddOrUpdate(packet.SourceIp, 1, (_, count) => count + 1);
         }
 
         if (!string.IsNullOrEmpty(packet.DestIp))
         {
-            if (!Statistics.TopDestIPs.ContainsKey(packet.DestIp))
-                Statistics.TopDestIPs[packet.DestIp] = 0;
-            Statistics.TopDestIPs[packet.DestIp]++;
+            _destIpCounts.AddOrUpdate(packet.DestIp, 1, (_, count) => count + 1);
         }
 
-        // Update port stats
         if (packet.DestPort > 0)
         {
-            if (!Statistics.TopDestPorts.ContainsKey(packet.DestPort))
-                Statistics.TopDestPorts[packet.DestPort] = 0;
-            Statistics.TopDestPorts[packet.DestPort]++;
+            _destPortCounts.AddOrUpdate(packet.DestPort, 1, (_, count) => count + 1);
         }
 
         Statistics.TotalPackets++;
@@ -211,8 +203,145 @@ public class StatisticsViewModel : BindableBase, INavigationAware
         }
         else
         {
-            RefreshFromManaged();
+            _ = RefreshFromManagedAsync();
         }
+    }
+    
+    private async Task RefreshFromManagedAsync()
+    {
+        if (_isRefreshing) return;
+        _isRefreshing = true;
+        
+        try
+        {
+            _statsCts?.Cancel();
+            _statsCts = new CancellationTokenSource();
+            var ct = _statsCts.Token;
+            
+            // Run aggregation on thread pool 
+            var result = await Task.Run(() => ComputeStatisticsParallel(ct), ct);
+            
+            if (ct.IsCancellationRequested) return;
+            
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                TotalPackets = result.TotalPackets;
+                PacketsPerSecond = Statistics.PacketsPerSecond;
+                CaptureTime = Statistics.Duration.ToString(@"hh\:mm\:ss");
+                UniqueProtocols = result.ProtocolStats.Count;
+                UniqueIPs = result.UniqueIPs;
+                
+                ProtocolStats.Clear();
+                foreach (var stat in result.ProtocolStats)
+                {
+                    ProtocolStats.Add(stat);
+                }
+                
+                TopSourceIPs.Clear();
+                foreach (var ip in result.TopSourceIPs)
+                {
+                    TopSourceIPs.Add(ip);
+                }
+                
+                TopDestIPs.Clear();
+                foreach (var ip in result.TopDestIPs)
+                {
+                    TopDestIPs.Add(ip);
+                }
+                
+                TopPorts.Clear();
+                foreach (var port in result.TopPorts)
+                {
+                    TopPorts.Add(port);
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+           
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
+    }
+    
+    private StatisticsResult ComputeStatisticsParallel(CancellationToken ct)
+    {
+        var totalPackets = Interlocked.Read(ref _packetCount);
+        var divisor = totalPackets > 0 ? totalPackets : 1;
+        
+        // Parallel top protocol
+        var protocolStats = _protocolCounts
+            .AsParallel()
+            .WithCancellation(ct)
+            .OrderByDescending(x => x.Value)
+            .Take(10)
+            .Select(kvp => new ProtocolStats
+            {
+                Protocol = kvp.Key,
+                PacketCount = kvp.Value,
+                Percentage = (double)kvp.Value / divisor * 100
+            })
+            .ToList();
+        
+        // Parallel top source IPs
+        var topSourceIPs = _sourceIpCounts
+            .AsParallel()
+            .WithCancellation(ct)
+            .OrderByDescending(x => x.Value)
+            .Take(5)
+            .Select(kvp => new TalkerInfo { IP = kvp.Key, PacketCount = kvp.Value })
+            .ToList();
+        
+        // Parallel top destination IPs
+        var topDestIPs = _destIpCounts
+            .AsParallel()
+            .WithCancellation(ct)
+            .OrderByDescending(x => x.Value)
+            .Take(5)
+            .Select(kvp => new TalkerInfo { IP = kvp.Key, PacketCount = kvp.Value })
+            .ToList();
+        
+        // Parallel top ports
+        var topPorts = _destPortCounts
+            .AsParallel()
+            .WithCancellation(ct)
+            .OrderByDescending(x => x.Value)
+            .Take(5)
+            .Select(kvp => new PortInfo 
+            { 
+                Port = kvp.Key, 
+                PacketCount = kvp.Value, 
+                ServiceName = GetServiceName(kvp.Key) 
+            })
+            .ToList();
+        
+        // Compute unique IPs in parallel
+        var uniqueIPs = _sourceIpCounts.Keys
+            .AsParallel()
+            .WithCancellation(ct)
+            .Union(_destIpCounts.Keys.AsParallel())
+            .Count();
+        
+        return new StatisticsResult
+        {
+            TotalPackets = totalPackets,
+            ProtocolStats = protocolStats,
+            TopSourceIPs = topSourceIPs,
+            TopDestIPs = topDestIPs,
+            TopPorts = topPorts,
+            UniqueIPs = uniqueIPs
+        };
+    }
+    private class StatisticsResult
+    {
+        public long TotalPackets { get; init; }
+        public List<ProtocolStats> ProtocolStats { get; init; } = new();
+        public List<TalkerInfo> TopSourceIPs { get; init; } = new();
+        public List<TalkerInfo> TopDestIPs { get; init; } = new();
+        public List<PortInfo> TopPorts { get; init; } = new();
+        public int UniqueIPs { get; init; }
     }
 
     private void RefreshFromNative()
@@ -275,54 +404,27 @@ public class StatisticsViewModel : BindableBase, INavigationAware
         }
         catch
         {
-            // Fallback to managed if native fails
             RefreshFromManaged();
         }
     }
 
     private void RefreshFromManaged()
     {
-        TotalPackets = Statistics.TotalPackets;
-        PacketsPerSecond = Statistics.PacketsPerSecond;
-        CaptureTime = Statistics.Duration.ToString(@"hh\:mm\:ss");
-        
-        // Update protocol stats
-        ProtocolStats.Clear();
-        var totalPackets = Statistics.TotalPackets > 0 ? Statistics.TotalPackets : 1;
-        foreach (var kvp in Statistics.ProtocolBreakdown.OrderByDescending(x => x.Value.PacketCount).Take(10))
-        {
-            kvp.Value.Percentage = (double)kvp.Value.PacketCount / totalPackets * 100;
-            ProtocolStats.Add(kvp.Value);
-        }
-        UniqueProtocols = Statistics.ProtocolBreakdown.Count;
-
-        // Update top source IPs
-        TopSourceIPs.Clear();
-        foreach (var kvp in Statistics.TopSourceIPs.OrderByDescending(x => x.Value).Take(5))
-        {
-            TopSourceIPs.Add(new TalkerInfo { IP = kvp.Key, PacketCount = kvp.Value });
-        }
-
-        // Update top dest IPs
-        TopDestIPs.Clear();
-        foreach (var kvp in Statistics.TopDestIPs.OrderByDescending(x => x.Value).Take(5))
-        {
-            TopDestIPs.Add(new TalkerInfo { IP = kvp.Key, PacketCount = kvp.Value });
-        }
-
-        UniqueIPs = Statistics.TopSourceIPs.Keys.Union(Statistics.TopDestIPs.Keys).Count();
-
-        // Update top ports
-        TopPorts.Clear();
-        foreach (var kvp in Statistics.TopDestPorts.OrderByDescending(x => x.Value).Take(5))
-        {
-            TopPorts.Add(new PortInfo { Port = kvp.Key, PacketCount = kvp.Value, ServiceName = GetServiceName(kvp.Key) });
-        }
+        _ = RefreshFromManagedAsync();
     }
 
     private void ClearStatistics()
     {
         Statistics = new CaptureStatistics { CaptureStartTime = DateTime.Now };
+        
+        // Clear thread-safe collections
+        _protocolCounts.Clear();
+        _sourceIpCounts.Clear();
+        _destIpCounts.Clear();
+        _destPortCounts.Clear();
+        Interlocked.Exchange(ref _packetCount, 0);
+        
+        // Clear observable collections
         ProtocolStats.Clear();
         TopSourceIPs.Clear();
         TopDestIPs.Clear();

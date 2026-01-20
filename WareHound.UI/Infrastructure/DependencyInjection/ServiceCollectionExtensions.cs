@@ -20,6 +20,9 @@ namespace WareHound.UI.Infrastructure.DependencyInjection
             // Register Application Services
             containerRegistry.RegisterSingleton<ISnifferService, SnifferService>();
             containerRegistry.RegisterSingleton<IPacketCollectionService, PacketCollectionService>();
+
+            // Register Views
+            containerRegistry.Register<MainWindow>();
         }
 
         public static void AddViewModels(this IContainerRegistry containerRegistry)
@@ -29,6 +32,7 @@ namespace WareHound.UI.Infrastructure.DependencyInjection
             containerRegistry.RegisterForNavigation<DashboardView, DashboardViewModel>();
             containerRegistry.RegisterForNavigation<StatisticsView, StatisticsViewModel>();
             containerRegistry.RegisterForNavigation<SettingsView, SettingsViewModel>();
+            containerRegistry.RegisterForNavigation<LogView, LogViewModel>();
         }
     }
 }

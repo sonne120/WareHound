@@ -1,10 +1,12 @@
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using WareHound.UI.Models;
+using WareHound.UI.ViewModels;
 
 namespace WareHound.UI.Views;
 
@@ -16,6 +18,36 @@ public partial class CaptureView : UserControl
     {
         InitializeComponent();
         Loaded += CaptureView_Loaded;
+        DataContextChanged += CaptureView_DataContextChanged;
+    }
+
+    private void CaptureView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is CaptureViewModel oldVm)
+        {
+            oldVm.PropertyChanged -= ViewModel_PropertyChanged;
+        }
+        
+        if (e.NewValue is CaptureViewModel newVm)
+        {
+            newVm.PropertyChanged += ViewModel_PropertyChanged;
+            UpdateMacColumnsVisibility(newVm.ShowMacAddresses);
+        }
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CaptureViewModel.ShowMacAddresses) && sender is CaptureViewModel vm)
+        {
+            UpdateMacColumnsVisibility(vm.ShowMacAddresses);
+        }
+    }
+
+    private void UpdateMacColumnsVisibility(bool show)
+    {
+        var visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        SourceMacColumn.Visibility = visibility;
+        DestMacColumn.Visibility = visibility;
     }
 
     private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -43,10 +75,19 @@ public partial class CaptureView : UserControl
         {
             collection.CollectionChanged += Packets_CollectionChanged;
         }
+
+        // Initialize MAC column visibility
+        if (DataContext is CaptureViewModel vm)
+        {
+            UpdateMacColumnsVisibility(vm.ShowMacAddresses);
+        }
     }
 
     private void Packets_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (DataContext is CaptureViewModel viewModel && !viewModel.AutoScroll)
+            return;
+
         if (e.Action == NotifyCollectionChangedAction.Add && _scrollViewer != null)
         {
             Dispatcher.BeginInvoke(() =>

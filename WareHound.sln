@@ -9,6 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WareHound.UI", "WareHound.U
 		{A1B2C3D4-1111-2222-3333-444455556666} = {A1B2C3D4-1111-2222-3333-444455556666}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WareHound.Tests", "WareHound.Tests\WareHound.Tests.csproj", "{D1E2F3A4-5555-6666-7777-888899990000}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WareHound.IntegrationTests", "WareHound.IntegrationTests\WareHound.IntegrationTests.csproj", "{E2F3A4B5-6666-7777-8888-999900001111}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WareHound.UITests", "WareHound.UITests\WareHound.UITests.csproj", "{F3A4B5C6-7777-8888-9999-000011112222}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -23,5 +29,17 @@ Global
 		{C3D4E5F6-3333-4444-5555-666677778888}.Debug|x64.Build.0 = Debug|x64
 		{C3D4E5F6-3333-4444-5555-666677778888}.Release|x64.ActiveCfg = Release|x64
 		{C3D4E5F6-3333-4444-5555-666677778888}.Release|x64.Build.0 = Release|x64
+		{D1E2F3A4-5555-6666-7777-888899990000}.Debug|x64.ActiveCfg = Debug|x64
+		{D1E2F3A4-5555-6666-7777-888899990000}.Debug|x64.Build.0 = Debug|x64
+		{D1E2F3A4-5555-6666-7777-888899990000}.Release|x64.ActiveCfg = Release|x64
+		{D1E2F3A4-5555-6666-7777-888899990000}.Release|x64.Build.0 = Release|x64
+		{E2F3A4B5-6666-7777-8888-999900001111}.Debug|x64.ActiveCfg = Debug|x64
+		{E2F3A4B5-6666-7777-8888-999900001111}.Debug|x64.Build.0 = Debug|x64
+		{E2F3A4B5-6666-7777-8888-999900001111}.Release|x64.ActiveCfg = Release|x64
+		{E2F3A4B5-6666-7777-8888-999900001111}.Release|x64.Build.0 = Release|x64
+		{F3A4B5C6-7777-8888-9999-000011112222}.Debug|x64.ActiveCfg = Debug|x64
+		{F3A4B5C6-7777-8888-9999-000011112222}.Debug|x64.Build.0 = Debug|x64
+		{F3A4B5C6-7777-8888-9999-000011112222}.Release|x64.ActiveCfg = Release|x64
+		{F3A4B5C6-7777-8888-9999-000011112222}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

@@ -118,6 +118,17 @@ public partial class MainWindow : Window
         }
     }
 
+    private void btnLogs_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (Tg_Btn.IsChecked == false)
+        {
+            NavPopup.PlacementTarget = btnLogs;
+            NavPopup.Placement = PlacementMode.Right;
+            NavPopup.IsOpen = true;
+            PopupHeader.PopupText.Text = "Logs";
+        }
+    }
+
     private void NavButton_MouseLeave(object sender, MouseEventArgs e)
     {
         NavPopup.IsOpen = false;

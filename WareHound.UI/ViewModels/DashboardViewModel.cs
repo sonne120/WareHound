@@ -11,8 +11,6 @@ namespace WareHound.UI.ViewModels
     public class DashboardViewModel : BindableBase, INavigationAware
     {
         private readonly IPacketCollectionService _collectionService;
-
-
         private SavedCollection? _selectedCollection;
         private PacketInfo? _selectedPacket;
         private ObservableCollection<TreeNode> _packetDetails = new();
@@ -51,14 +49,8 @@ namespace WareHound.UI.ViewModels
             set => SetProperty(ref _packetDetails, value);
         }
 
-
-
-
         public DelegateCommand DeleteCommand { get; }
         public DelegateCommand ExportCommand { get; }
-
-
-
 
         public DashboardViewModel(IPacketCollectionService collectionService)
         {
@@ -93,9 +85,6 @@ namespace WareHound.UI.ViewModels
                 _collectionService.ExportToCsv(SelectedCollection.Id, dialog.FileName);
             }
         }
-
-
-
 
         private void UpdatePacketDetails()
         {

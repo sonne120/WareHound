@@ -3,37 +3,30 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:prism="http://prismlibrary.com/"
              prism:ViewModelLocator.AutoWireViewModel="True"
-             Background="{StaticResource PrimaryBrush}">
+             Background="{DynamicResource PrimaryBrush}">
 
     <UserControl.Resources>
-        <!-- Soft card style -->
         <Style x:Key="SoftCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="#FAFAFA"/>
-            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="{DynamicResource SecondaryBrush}"/>
+            <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="20"/>
             <Setter Property="Margin" Value="0,0,0,16"/>
-            <Setter Property="BorderBrush" Value="#E8E8E8"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#000000" Opacity="0.04" BlurRadius="8" ShadowDepth="2" Direction="270"/>
-                </Setter.Value>
-            </Setter>
         </Style>
         
         <!-- Section title style -->
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#6E6E73"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="Margin" Value="4,0,0,10"/>
         </Style>
         
-        <!-- Soft checkbox style -->
-        <Style x:Key="SoftCheckBoxStyle" TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#48484A"/>
+        <Style x:Key="SettingsTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </UserControl.Resources>
 
@@ -44,29 +37,76 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" Background="#FAFAFA" Padding="28,20" BorderBrush="#EBEBEB" BorderThickness="0,0,0,1">
-            <StackPanel>
-                <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" Foreground="#2C2C2E"/>
-                <TextBlock Text="Customize your WareHound experience" FontSize="13" Foreground="#8E8E93" Margin="0,4,0,0"/>
+        <Grid Grid.Row="0" Margin="16,16,16,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Settings" FontSize="20" FontWeight="SemiBold" 
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <TextBlock Text="Customize your WareHound experience" 
+                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
             </StackPanel>
-        </Border>
+            
+            <!-- Action Buttons in Header (matching LogView/CaptureView style) -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource ModernButtonStyle}"
+                        Content="Reset" 
+                        Height="26" Padding="16,0" Margin="0,0,8,0"/>
+                <Button Style="{StaticResource ModernButtonStyle}"
+                        Content="Apply" 
+                        Height="26" Padding="16,0"/>
+            </StackPanel>
+        </Grid>
 
         <!-- Settings Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="28,24,28,28">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,16,16,16">
             <StackPanel MaxWidth="560" HorizontalAlignment="Left">
                 
                 <!-- Capture Settings -->
                 <TextBlock Text="CAPTURE" Style="{StaticResource SectionTitleStyle}"/>
-                
+
                 <Border Style="{StaticResource SoftCardStyle}">
                     <StackPanel>
-                        <CheckBox Content="Auto-scroll packet list" IsChecked="True" Style="{StaticResource SoftCheckBoxStyle}"/>
-                        <CheckBox Content="Resolve hostnames" IsChecked="False" Style="{StaticResource SoftCheckBoxStyle}"/>
-                        <CheckBox Content="Show MAC addresses" IsChecked="True" Style="{StaticResource SoftCheckBoxStyle}" Margin="0"/>
+            
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Auto-scroll packet list" Style="{StaticResource SettingsTextStyle}"/>
+                            <ToggleButton Grid.Column="1" IsChecked="{Binding AutoScroll}" 
+                                          Width="48" Height="24"
+                                          Style="{DynamicResource ToggleSwitchStyle}"/>
+                        </Grid>
+                        
+                        <!-- Resolve hostnames toggle -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Resolve hostnames" Style="{StaticResource SettingsTextStyle}"/>
+                            <ToggleButton Grid.Column="1" IsChecked="False" 
+                                          Width="48" Height="24"
+                                          Style="{DynamicResource ToggleSwitchStyle}"/>
+                        </Grid>
+                        
+                        <!-- Show MAC addresses toggle -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Show MAC addresses" Style="{StaticResource SettingsTextStyle}"/>
+                            <ToggleButton Grid.Column="1" IsChecked="{Binding ShowMacAddresses}" 
+                                          Width="48" Height="24"
+                                          Style="{DynamicResource ToggleSwitchStyle}"/>
+                        </Grid>
                     </StackPanel>
                 </Border>
-
-                <!-- Display Settings -->
                 <TextBlock Text="DISPLAY" Style="{StaticResource SectionTitleStyle}" Margin="4,8,0,10"/>
                 
                 <Border Style="{StaticResource SoftCardStyle}">
@@ -76,25 +116,38 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Max packets to display" Foreground="#48484A" FontSize="14" VerticalAlignment="Center"/>
-                            <TextBox Grid.Column="1" Width="100" Text="10000" Background="#F0F0F2" BorderBrush="#E0E0E2" Foreground="#48484A"/>
+                            <TextBlock Text="Max packets to display" Style="{StaticResource SettingsTextStyle}"/>
+                            <TextBox Grid.Column="1" Width="100" Height="26" Text="10000" 
+                                     Style="{StaticResource ModernTextBoxStyle}"
+                                     VerticalContentAlignment="Center" Padding="8,0"/>
                         </Grid>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="Time format" Foreground="#48484A" FontSize="14" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1" Width="140" Background="#F0F0F2" BorderBrush="#E0E0E2">
-                                <ComboBoxItem Content="Relative" IsSelected="True"/>
-                                <ComboBoxItem Content="Absolute"/>
-                                <ComboBoxItem Content="Delta"/>
-                            </ComboBox>
+                            <TextBlock Text="Time format" Style="{StaticResource SettingsTextStyle}"/>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBoxStyle}"
+                                      Width="140" Height="26"
+                                      ItemsSource="{Binding TimeFormats}"
+                                      SelectedIndex="{Binding SelectedTimeFormatIndex}"/>
+                        </Grid>
+
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Theme" Style="{StaticResource SettingsTextStyle}"/>
+                            <ComboBox x:Name="ThemeSelector" AutomationProperties.AutomationId="ThemeSelector"
+                                      Grid.Column="1" Style="{StaticResource ModernComboBoxStyle}"
+                                      Width="140" Height="26"
+                                      ItemsSource="{Binding Themes}"
+                                      SelectedIndex="{Binding SelectedThemeIndex}"/>
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <!-- About -->
                 <TextBlock Text="ABOUT" Style="{StaticResource SectionTitleStyle}" Margin="4,8,0,10"/>
                 
                 <Border Style="{StaticResource SoftCardStyle}" Margin="0">
@@ -102,24 +155,26 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                             <TextBlock Text="🐺" FontSize="32" VerticalAlignment="Center" Margin="0,0,12,0"/>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="WareHound" FontWeight="SemiBold" FontSize="18" Foreground="#2C2C2E"/>
-                                <TextBlock Text="Network Packet Analyzer" Foreground="#8E8E93" FontSize="13"/>
+                                <TextBlock Text="WareHound" FontWeight="SemiBold" FontSize="18" 
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock Text="Network Packet Analyzer" 
+                                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
                             </StackPanel>
                         </StackPanel>
-                        <Border Background="#F5F5F7" CornerRadius="6" Padding="12">
+                        <Border Background="{DynamicResource TertiaryBrush}" CornerRadius="6" Padding="12">
                             <StackPanel>
                                 <Grid Margin="0,0,0,6">
-                                    <TextBlock Text="Version" Foreground="#8E8E93" FontSize="13"/>
-                                    <TextBlock Text="1.0.0" Foreground="#48484A" FontSize="13" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Version" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+                                    <TextBlock Text="1.0.0" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13" HorizontalAlignment="Right"/>
                                 </Grid>
                                 <Grid>
-                                    <TextBlock Text="Build" Foreground="#8E8E93" FontSize="13"/>
-                                    <TextBlock Text="2026.01.16" Foreground="#48484A" FontSize="13" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="Build" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+                                    <TextBlock Text="2026.01.20" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="13" HorizontalAlignment="Right"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="A modern network packet capture and analysis tool built with WPF and native sniffing capabilities." 
-                                   Foreground="#8E8E93" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0" LineHeight="20"/>
+                        <TextBlock Text="Network packet capture and analysis tool built with WPF and native sniffing capabilities." 
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0" LineHeight="20"/>
                     </StackPanel>
                 </Border>
                 

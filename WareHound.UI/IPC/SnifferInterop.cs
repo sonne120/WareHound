@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading;
 using WareHound.UI.IPC.Ptr;
 
 namespace WareHound.UI.IPC
@@ -50,6 +51,10 @@ namespace WareHound.UI.IPC
         public void Stop()
         {
             StopCapturePtr.Stop();
+            // Allow some time for the C++ thread to wind down
+            Thread.Sleep(200);
+        
+            StreamPtr.Reset();
         }
         
         public IntPtr GetSnifferHandle()

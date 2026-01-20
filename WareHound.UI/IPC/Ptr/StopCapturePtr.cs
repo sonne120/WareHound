@@ -4,9 +4,6 @@ using System.Runtime.InteropServices;
 
 namespace WareHound.UI.IPC.Ptr
 {
-    /// <summary>
-    /// P/Invoke wrapper for fnStopCapture - signals C++ to stop packet capture
-    /// </summary>
     public static class StopCapturePtr
     {
         private static ILoggerService? _logger;
@@ -17,11 +14,6 @@ namespace WareHound.UI.IPC.Ptr
 
         [DllImport(DllName, CallingConvention = CallingConvention.StdCall, EntryPoint = "fnStopCapture")]
         private static extern void fnStopCapture();
-
-        /// <summary>
-        /// Signals the C++ capture thread to stop capturing packets.
-        /// Sets quit_flag = false in C++.
-        /// </summary>
         public static void Stop()
         {
             _logger?.LogDebug("[StopCapturePtr] Calling fnStopCapture()...");
