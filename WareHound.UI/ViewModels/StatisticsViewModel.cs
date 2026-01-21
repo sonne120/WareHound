@@ -1,20 +1,20 @@
-using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
 using Prism.Commands;
 using Prism.Events;
-using Prism.Mvvm;
 using Prism.Regions;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using WareHound.UI.Infrastructure.Events;
+using WareHound.UI.Infrastructure.Services;
+using WareHound.UI.Infrastructure.ViewModels;
 using WareHound.UI.IPC;
 using WareHound.UI.Models;
 using WareHound.UI.Services;
 
 namespace WareHound.UI.ViewModels;
 
-public class StatisticsViewModel : BindableBase, INavigationAware
+public class StatisticsViewModel : BaseViewModel
 {
     private readonly ISnifferService _snifferService;
-    private readonly IEventAggregator _eventAggregator;
     private readonly INativeStatisticsInterop? _nativeStats;
     
     private CaptureStatistics _statistics = new();
@@ -29,6 +29,7 @@ public class StatisticsViewModel : BindableBase, INavigationAware
     private long _packetCount;
     private CancellationTokenSource? _statsCts;
     private bool _isRefreshing;
+    protected ILoggerService logger;
 
     public CaptureStatistics Statistics
     {
@@ -115,10 +116,10 @@ public class StatisticsViewModel : BindableBase, INavigationAware
     public DelegateCommand ClearCommand { get; }
     public DelegateCommand ToggleStatsSourceCommand { get; }
 
-    public StatisticsViewModel(ISnifferService snifferService, IEventAggregator eventAggregator)
+    public StatisticsViewModel(ISnifferService snifferService, IEventAggregator eventAggregator, ILoggerService logger)
+        : base(eventAggregator, logger)
     {
         _snifferService = snifferService ?? throw new ArgumentNullException(nameof(snifferService));
-        _eventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
 
         try
         {
@@ -133,8 +134,9 @@ public class StatisticsViewModel : BindableBase, INavigationAware
             _nativeStats = null;
         }
 
-        _eventAggregator.GetEvent<CaptureStateChangedEvent>().Subscribe(OnCaptureStateChanged);
-        _eventAggregator.GetEvent<PacketCapturedEvent>().Subscribe(OnPacketCaptured);
+        // Auto-tracked event subscriptions - cleaned up automatically on dispose
+        Subscribe<CaptureStateChangedEvent, bool>(OnCaptureStateChanged);
+        Subscribe<PacketCapturedEvent, PacketInfo>(OnPacketCaptured);
 
         RefreshCommand = new DelegateCommand(RefreshStatistics);
         ClearCommand = new DelegateCommand(ClearStatistics);
@@ -459,20 +461,26 @@ public class StatisticsViewModel : BindableBase, INavigationAware
         _ => ""
     };
 
-    public void OnNavigatedTo(NavigationContext navigationContext)
+    public override void OnNavigatedTo(NavigationContext navigationContext)
     {
         RefreshStatistics();
         _refreshTimer?.Start();
     }
 
-    public bool IsNavigationTarget(NavigationContext navigationContext) => true;
+    public override bool IsNavigationTarget(NavigationContext navigationContext) => true;
 
-    public void OnNavigatedFrom(NavigationContext navigationContext)
+    public override void OnNavigatedFrom(NavigationContext navigationContext)
     {
         _refreshTimer?.Stop();
     }
-}
 
+    protected override void OnDispose()
+    {
+        _refreshTimer?.Stop();
+        _statsCts?.Cancel();
+        _statsCts?.Dispose();
+    }
+}
 public class TalkerInfo
 {
     public string IP { get; set; } = "";

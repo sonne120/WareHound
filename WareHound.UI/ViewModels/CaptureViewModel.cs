@@ -4,20 +4,18 @@ using System.Windows;
 using System.Windows.Threading;
 using Prism.Commands;
 using Prism.Events;
-using Prism.Mvvm;
-using Prism.Regions;
 using WareHound.UI.Infrastructure.Events;
+using WareHound.UI.Infrastructure.ViewModels;
 using WareHound.UI.Models;
 using WareHound.UI.Services;
 using WareHound.UI.Infrastructure.Services;
 
 namespace WareHound.UI.ViewModels
 {
-    public class CaptureViewModel : BindableBase, INavigationAware, IDisposable
+    public class CaptureViewModel : BaseViewModel
     {
         private readonly ISnifferService _snifferService;
         private readonly IPacketCollectionService _collectionService;
-        private readonly IEventAggregator _eventAggregator;
         private readonly ILoggerService _logger;
 
         private NetworkDevice? _selectedDevice;
@@ -26,11 +24,9 @@ namespace WareHound.UI.ViewModels
         private PacketInfo? _selectedPacket;
         private ObservableCollection<TreeNode> _packetDetails = new();
         private string _packetHexDump = "";
-        private bool _disposed;
         private bool _autoScroll = true;
         private bool _showMacAddresses = true;
 
-        // Async packet consumption
         private CancellationTokenSource? _captureCts;
         private bool _hasPackets;
 
@@ -95,18 +91,18 @@ namespace WareHound.UI.ViewModels
         public DelegateCommand<string> CopyCommand { get; }
 
         public CaptureViewModel(ISnifferService snifferService, IPacketCollectionService collectionService, IEventAggregator eventAggregator, ILoggerService logger)
+            : base(eventAggregator, logger)
         {
             _snifferService = snifferService ?? throw new ArgumentNullException(nameof(snifferService));
             _collectionService = collectionService ?? throw new ArgumentNullException(nameof(collectionService));
-            _eventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             
-            _eventAggregator.GetEvent<CaptureStateChangedEvent>().Subscribe(OnCaptureStateChanged);
-            _eventAggregator.GetEvent<ClearPacketsEvent>().Subscribe(Clear);
-            _eventAggregator.GetEvent<FilterChangedEvent>().Subscribe(filter => FilterText = filter);
-            _eventAggregator.GetEvent<AutoScrollChangedEvent>().Subscribe(enabled => AutoScroll = enabled);
-            _eventAggregator.GetEvent<ShowMacAddressesChangedEvent>().Subscribe(enabled => ShowMacAddresses = enabled);
-            _eventAggregator.GetEvent<TimeFormatChangedEvent>().Subscribe(OnTimeFormatChanged);
+            Subscribe<CaptureStateChangedEvent, bool>(OnCaptureStateChanged);
+            Subscribe<ClearPacketsEvent>(Clear);
+            Subscribe<FilterChangedEvent, string>(filter => FilterText = filter);
+            Subscribe<AutoScrollChangedEvent, bool>(enabled => AutoScroll = enabled);
+            Subscribe<ShowMacAddressesChangedEvent, bool>(enabled => ShowMacAddresses = enabled);
+            Subscribe<TimeFormatChangedEvent, TimeFormatType>(OnTimeFormatChanged);
 
             ToggleCaptureCommand = new DelegateCommand(ToggleCapture);
             ClearCommand = new DelegateCommand(Clear);
@@ -229,9 +225,6 @@ namespace WareHound.UI.ViewModels
                 Clipboard.SetText(text);
         }
 
-        /// <summary>
-        /// Consumes packets from the sniffer service's async stream
-        /// </summary>
         private async Task ConsumePacketsAsync(CancellationToken ct)
         {
             try
@@ -253,14 +246,14 @@ namespace WareHound.UI.ViewModels
 
         private async Task FlushBatchToUIAsync(IList<PacketInfo> batch)
         {
-            var packetsToAdd = batch.ToArray(); // Creating a copy is cheap for references
+            var packetsToAdd = batch.ToArray(); 
 
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 foreach (var p in packetsToAdd)
                 {
                     Packets.Add(p);               
-                    _eventAggregator.GetEvent<PacketCapturedEvent>().Publish(p);
+                    Publish<PacketCapturedEvent, PacketInfo>(p);
                 }
 
                 if (!_hasPackets && Packets.Count > 0)
@@ -273,7 +266,7 @@ namespace WareHound.UI.ViewModels
 
         private void OnError(string error)
         {
-            Application.Current.Dispatcher.BeginInvoke(() =>
+            BeginOnUI(() =>
             {
                 MessageBox.Show(error, "WareHound Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 IsCapturing = false;
@@ -439,22 +432,12 @@ namespace WareHound.UI.ViewModels
             _ => 0
         };
 
-        public void OnNavigatedTo(NavigationContext navigationContext) { }
-        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-        public void OnNavigatedFrom(NavigationContext navigationContext) { }
-
-        public void Dispose()
+        protected override void OnDispose()
         {
-            if (_disposed) return;
-            _disposed = true;
-
-            // Stop packet consumption
             _captureCts?.Cancel();
             _captureCts?.Dispose();
 
             _snifferService.ErrorOccurred -= OnError;
-
-            GC.SuppressFinalize(this);
         }
     }
 }

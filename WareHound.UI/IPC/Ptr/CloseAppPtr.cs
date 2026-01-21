@@ -6,9 +6,6 @@ using WareHound.UI.Infrastructure.Services;
 
 namespace WareHound.UI.IPC.Ptr
 {
-    /// <summary>
-    /// P/Invoke wrapper for fnCloseApp - closes the sniffer application
-    /// </summary>
     public static class CloseAppPtr
     {
         private static ILoggerService? _logger;
@@ -20,9 +17,6 @@ namespace WareHound.UI.IPC.Ptr
         [DllImport(DllName, CallingConvention = CallingConvention.StdCall, EntryPoint = "fnCloseApp")]
         private static extern void fnCloseApp();
 
-        /// <summary>
-        /// Signals the C++ to close and cleanup resources.
-        /// </summary>
         public static void Close()
         {
             _logger?.LogDebug("[CloseAppPtr] Close called, invoking fnCloseApp with timeout...");

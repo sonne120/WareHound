@@ -1,12 +1,12 @@
 using Prism.Events;
-using Prism.Mvvm;
 using WareHound.UI.Infrastructure.Events;
+using WareHound.UI.Infrastructure.Services;
+using WareHound.UI.Infrastructure.ViewModels;
 
 namespace WareHound.UI.ViewModels
 {
-    public class SettingsViewModel : BindableBase
+    public class SettingsViewModel : BaseViewModel
     {
-        private readonly IEventAggregator _eventAggregator;
 
         private bool _darkModeEnabled;
         private int _maxPacketBuffer = 10000;
@@ -37,7 +37,7 @@ namespace WareHound.UI.ViewModels
             {
                 if (SetProperty(ref _autoScroll, value))
                 {
-                    _eventAggregator.GetEvent<AutoScrollChangedEvent>().Publish(value);
+                    Publish<AutoScrollChangedEvent, bool>(value);
                 }
             }
         }
@@ -49,7 +49,7 @@ namespace WareHound.UI.ViewModels
             {
                 if (SetProperty(ref _showMacAddresses, value))
                 {
-                    _eventAggregator.GetEvent<ShowMacAddressesChangedEvent>().Publish(value);
+                    Publish<ShowMacAddressesChangedEvent, bool>(value);
                 }
             }
         }
@@ -61,7 +61,7 @@ namespace WareHound.UI.ViewModels
                 if (SetProperty(ref _selectedTimeFormatIndex, value))
                 {
                     var format = (TimeFormatType)value;
-                    _eventAggregator.GetEvent<TimeFormatChangedEvent>().Publish(format);
+                    Publish<TimeFormatChangedEvent, TimeFormatType>(format);
                 }
             }
         }
@@ -74,7 +74,7 @@ namespace WareHound.UI.ViewModels
                 if (SetProperty(ref _selectedThemeIndex, value))
                 {
                     _darkModeEnabled = value == 1;
-                    _eventAggregator.GetEvent<ThemeChangedEvent>().Publish(_darkModeEnabled);
+                    Publish<ThemeChangedEvent, bool>(_darkModeEnabled);
                 }
             }
         }
@@ -83,9 +83,9 @@ namespace WareHound.UI.ViewModels
             get => _captureFilter;
             set => SetProperty(ref _captureFilter, value);
         }
-        public SettingsViewModel(IEventAggregator eventAggregator)
+        public SettingsViewModel(IEventAggregator eventAggregator, ILoggerService logger)
+            : base(eventAggregator, logger)
         {
-            _eventAggregator = eventAggregator;
         }
     }
 }

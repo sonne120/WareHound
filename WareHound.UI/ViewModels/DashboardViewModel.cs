@@ -1,14 +1,13 @@
 using System.Collections.ObjectModel;
 using Microsoft.Win32;
 using Prism.Commands;
-using Prism.Mvvm;
-using Prism.Regions;
+using WareHound.UI.Infrastructure.ViewModels;
 using WareHound.UI.Models;
 using WareHound.UI.Services;
 
 namespace WareHound.UI.ViewModels
 {
-    public class DashboardViewModel : BindableBase, INavigationAware
+    public class DashboardViewModel : BaseViewModel
     {
         private readonly IPacketCollectionService _collectionService;
         private SavedCollection? _selectedCollection;
@@ -117,14 +116,5 @@ namespace WareHound.UI.ViewModels
             proto.AddChild($"Destination Port: {p.DestPort}");
             PacketDetails.Add(proto);
         }
-
-
-
-
-        public void OnNavigatedTo(NavigationContext navigationContext) { }
-        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-        public void OnNavigatedFrom(NavigationContext navigationContext) { }
-
-
     }
 }

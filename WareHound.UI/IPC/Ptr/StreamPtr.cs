@@ -68,10 +68,7 @@ namespace WareHound.UI.IPC.Ptr
                 _isInitialized = true;
             }
         }
-
-        /// <summary>
-        /// Resets the stream state and waits for the worker thread to terminate
-        /// </summary>
+       
         public static void Reset()
         {
             lock (_sync)

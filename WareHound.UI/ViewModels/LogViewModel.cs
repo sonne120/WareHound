@@ -13,9 +13,7 @@ namespace WareHound.UI.ViewModels
         private string _filterText = "";
         private LogLevel? _selectedLevelFilter;
         private LogEntry? _selectedLogEntry;
-
         public ObservableCollection<LogEntry> LogEntries => _loggerService.LogEntries;
-
         public string[] LogLevels { get; } = { "All", "Debug", "Info", "Warning", "Error" };
 
         public string FilterText
@@ -111,7 +109,6 @@ namespace WareHound.UI.ViewModels
         }
 
         public bool IsNavigationTarget(NavigationContext navigationContext) => true;
-
         public void OnNavigatedFrom(NavigationContext navigationContext) { }
     }
 }

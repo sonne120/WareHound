@@ -1,20 +1,20 @@
-using System.Collections.ObjectModel;
-using System.Windows.Threading;
 using Prism.Commands;
 using Prism.Events;
-using Prism.Mvvm;
 using Prism.Regions;
+using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using WareHound.UI.Infrastructure.Events;
+using WareHound.UI.Infrastructure.Services;
+using WareHound.UI.Infrastructure.ViewModels;
 using WareHound.UI.Models;
 using WareHound.UI.Services;
 
 namespace WareHound.UI.ViewModels
 {
-    public class MainWindowViewModel : BindableBase, IDisposable
+    public class MainWindowViewModel : BaseViewModel
     {
         private readonly IRegionManager _regionManager;
         private readonly ISnifferService _snifferService;
-        private readonly IEventAggregator _eventAggregator;
         private readonly DispatcherTimer _statusTimer;
 
         private string _statusText = "Ready";
@@ -22,7 +22,6 @@ namespace WareHound.UI.ViewModels
         private DateTime _currentTime;
         private bool _isCapturing;
         private NetworkDevice? _selectedDevice;
-        private bool _disposed;
 
         public string StatusText
         {
@@ -61,7 +60,6 @@ namespace WareHound.UI.ViewModels
         }
 
         public ObservableCollection<NetworkDevice> Devices => _snifferService.Devices;
-
         public DelegateCommand<string> NavigateCommand { get; }
         public DelegateCommand StartCaptureCommand { get; }
         public DelegateCommand StopCaptureCommand { get; }
@@ -75,16 +73,16 @@ namespace WareHound.UI.ViewModels
             {
                 if (SetProperty(ref _filterText, value))
                 {
-                    _eventAggregator.GetEvent<FilterChangedEvent>().Publish(value);
+                    Publish<FilterChangedEvent, string>(value);
                 }
             }
         }
 
-        public MainWindowViewModel(IRegionManager regionManager, ISnifferService snifferService, IEventAggregator eventAggregator)
+        public MainWindowViewModel(IRegionManager regionManager, ISnifferService snifferService, IEventAggregator eventAggregator, ILoggerService logger)
+            : base(eventAggregator, logger)
         {
             _regionManager = regionManager ?? throw new ArgumentNullException(nameof(regionManager));
             _snifferService = snifferService ?? throw new ArgumentNullException(nameof(snifferService));
-            _eventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
 
             NavigateCommand = new DelegateCommand<string>(Navigate);
             StartCaptureCommand = new DelegateCommand(StartCapture, CanStartCapture)
@@ -111,7 +109,7 @@ namespace WareHound.UI.ViewModels
 
         private void ClearPackets()
         {
-            _eventAggregator.GetEvent<ClearPacketsEvent>().Publish();
+            Publish<ClearPacketsEvent>();
             PacketCount = 0;
         }
 
@@ -131,7 +129,7 @@ namespace WareHound.UI.ViewModels
             if (_snifferService.IsCapturing)
             {
                 IsCapturing = true;
-                _eventAggregator.GetEvent<CaptureStateChangedEvent>().Publish(true);
+                Publish<CaptureStateChangedEvent, bool>(true);
             }
         }
 
@@ -143,7 +141,7 @@ namespace WareHound.UI.ViewModels
 
             _snifferService.StopCapture();
             IsCapturing = false;
-            _eventAggregator.GetEvent<CaptureStateChangedEvent>().Publish(false);
+            Publish<CaptureStateChangedEvent, bool>(false);
         }
 
         private bool CanStopCapture() => IsCapturing;
@@ -160,15 +158,10 @@ namespace WareHound.UI.ViewModels
             StatusText = IsCapturing ? "Capturing..." : "Ready";
         }
 
-        public void Dispose()
+        protected override void OnDispose()
         {
-            if (_disposed) return;
-            _disposed = true;
-
             _statusTimer.Stop();
             //_snifferService.PacketReceived -= OnPacketReceived;
-
-            GC.SuppressFinalize(this);
         }
     }
 }

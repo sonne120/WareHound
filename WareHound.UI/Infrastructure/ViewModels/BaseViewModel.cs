@@ -1,133 +1,268 @@
+using Prism.Events;
+using Prism.Mvvm;
+using Prism.Regions;
+using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows.Input;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using WareHound.UI.Infrastructure.Services;
 
 namespace WareHound.UI.Infrastructure.ViewModels
 {
-    public abstract class BaseViewModel : INotifyPropertyChanged, IDisposable
+    public abstract class BaseViewModel : BindableBase, INavigationAware, IDisposable
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
+        private readonly List<SubscriptionToken> _subscriptionTokens = new();
+        private CancellationTokenSource? _cts;
+        private bool _disposed;
+        private bool _isBusy;
+        private string _errorMessage = string.Empty;
 
-        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        protected IEventAggregator? EventAggregator { get; }
+        protected ILoggerService _loggerService;
+
+        protected bool IsDisposed => _disposed;
+
+        protected CancellationToken CancellationToken =>
+            (_cts ??= new CancellationTokenSource()).Token;
+
+        public bool IsBusy
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            get => _isBusy;
+            set => SetProperty(ref _isBusy, value);
         }
 
-        protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+        public string ErrorMessage
         {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
+            get => _errorMessage;
+            set
+            {
+                if (SetProperty(ref _errorMessage, value))
+                {
+                    RaisePropertyChanged(nameof(HasError));
+                }
+            }
         }
 
-        protected abstract void Dispose(bool disposing);
+        public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
+
+        protected BaseViewModel()
+        {
+        }
+
+        protected BaseViewModel(IEventAggregator eventAggregator, ILoggerService logger)
+        {
+            EventAggregator = eventAggregator ?? throw new ArgumentNullException(nameof(eventAggregator));
+            _loggerService = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        protected void Subscribe<TEvent, TPayload>(Action<TPayload> handler)
+            where TEvent : PubSubEvent<TPayload>, new()
+        {
+            if (EventAggregator == null)
+                throw new InvalidOperationException("EventAggregator is not available. Use the constructor that accepts IEventAggregator.");
+
+            var token = EventAggregator.GetEvent<TEvent>().Subscribe(handler);
+            if (token != null)
+                _subscriptionTokens.Add(token);
+        }
+
+        protected void SubscribeOnUIThread<TEvent, TPayload>(Action<TPayload> handler)
+            where TEvent : PubSubEvent<TPayload>, new()
+        {
+            if (EventAggregator == null)
+                throw new InvalidOperationException("EventAggregator is not available. Use the constructor that accepts IEventAggregator.");
+
+            var token = EventAggregator.GetEvent<TEvent>().Subscribe(handler, ThreadOption.UIThread);
+            if (token != null)
+                _subscriptionTokens.Add(token);
+        }
+
+        protected void Subscribe<TEvent>(Action handler)
+            where TEvent : PubSubEvent, new()
+        {
+            if (EventAggregator == null)
+                throw new InvalidOperationException("EventAggregator is not available. Use the constructor that accepts IEventAggregator.");
+
+            var token = EventAggregator.GetEvent<TEvent>().Subscribe(handler);
+            if (token != null)
+                _subscriptionTokens.Add(token);
+        }
+        protected void Publish<TEvent, TPayload>(TPayload payload)
+            where TEvent : PubSubEvent<TPayload>, new()
+        {
+            EventAggregator?.GetEvent<TEvent>().Publish(payload);
+        }
+
+        protected void Publish<TEvent>()
+            where TEvent : PubSubEvent, new()
+        {
+            EventAggregator?.GetEvent<TEvent>().Publish();
+        }
+
+        protected void CancelOperations()
+        {
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+        }
+
+
+        protected static void RunOnUI(Action action)
+        {
+            if (Application.Current?.Dispatcher == null)
+            {
+                action();
+                return;
+            }
+
+            if (Application.Current.Dispatcher.CheckAccess())
+            {
+                action();
+            }
+            else
+            {
+                Application.Current.Dispatcher.Invoke(action);
+            }
+        }
+
+        protected static void BeginOnUI(Action action)
+        {
+            if (Application.Current?.Dispatcher == null)
+            {
+                action();
+                return;
+            }
+
+            if (Application.Current.Dispatcher.CheckAccess())
+            {
+                action();
+            }
+            else
+            {
+                Application.Current.Dispatcher.BeginInvoke(action);
+            }
+        }
+
+
+        protected static async Task RunOnUIAsync(Action action)
+        {
+            if (Application.Current?.Dispatcher == null)
+            {
+                action();
+                return;
+            }
+
+            if (Application.Current.Dispatcher.CheckAccess())
+            {
+                action();
+            }
+            else
+            {
+                await Application.Current.Dispatcher.InvokeAsync(action);
+            }
+        }
+
+        protected void ClearError() => ErrorMessage = string.Empty;
+
+        protected void SetError(string message) => ErrorMessage = message;
+
+        protected void HandleException(Exception ex, string? context = null)
+        {
+            var message = context != null
+                ? $"{context}: {ex.Message}"
+                : ex.Message;
+            SetError(message);
+        }
+
+        protected async Task ExecuteAsync(
+            Func<Task> operation,
+            string? errorContext = null,
+            bool showBusy = true)
+        {
+            if (showBusy) IsBusy = true;
+            ClearError();
+
+            try
+            {
+                await operation();
+            }
+            catch (OperationCanceledException ex )
+            {
+                _loggerService.Log($"Logs exported to {ex.InnerException}");
+            }
+            catch (Exception ex)
+            {
+                HandleException(ex, errorContext);
+            }
+            finally
+            {
+                if (showBusy) IsBusy = false;
+            }
+        }
+        protected async Task<T?> ExecuteAsync<T>(
+            Func<Task<T>> operation,
+            string? errorContext = null,
+            bool showBusy = true)
+        {
+            if (showBusy) IsBusy = true;
+            ClearError();
+
+            try
+            {
+                return await operation();
+            }
+            catch (OperationCanceledException)
+            {
+                return default;
+            }
+            catch (Exception ex)
+            {
+                HandleException(ex, errorContext);
+                return default;
+            }
+            finally
+            {
+                if (showBusy) IsBusy = false;
+            }
+        }
+
+        public virtual void OnNavigatedTo(NavigationContext navigationContext)
+        {
+        }
+        public virtual bool IsNavigationTarget(NavigationContext navigationContext) => true;
+
+        public virtual void OnNavigatedFrom(NavigationContext navigationContext)
+        {
+        }
 
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-    }
 
-    public class RelayCommand : ICommand
-    {
-        private readonly Action<object?> _execute;
-        private readonly Predicate<object?>? _canExecute;
-
-        public RelayCommand(Action<object?> execute, Predicate<object?>? canExecute = null)
+        protected virtual void Dispose(bool disposing)
         {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-        }
+            if (_disposed) return;
 
-        public event EventHandler? CanExecuteChanged
-        {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
-        }
-
-        public bool CanExecute(object? parameter) => _canExecute?.Invoke(parameter) ?? true;
-
-        public void Execute(object? parameter) => _execute(parameter);
-    }
-
-    public class RelayCommand<T> : ICommand
-    {
-        private readonly Action<T?> _execute;
-        private readonly Predicate<T?>? _canExecute;
-
-        public RelayCommand(Action<T?> execute, Predicate<T?>? canExecute = null)
-        {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-        }
-
-        public event EventHandler? CanExecuteChanged
-        {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
-        }
-
-        public bool CanExecute(object? parameter)
-        {
-            if (parameter is T typedParameter)
-                return _canExecute?.Invoke(typedParameter) ?? true;
-            return parameter == null && (_canExecute?.Invoke(default) ?? true);
-        }
-
-        public void Execute(object? parameter)
-        {
-            if (parameter is T typedParameter)
-                _execute(typedParameter);
-            else if (parameter == null)
-                _execute(default);
-        }
-    }
-
-    public class AsyncRelayCommand : ICommand
-    {
-        private readonly Func<object?, Task> _executeAsync;
-        private readonly Predicate<object?>? _canExecute;
-        private bool _isExecuting;
-
-        public AsyncRelayCommand(Func<object?, Task> executeAsync, Predicate<object?>? canExecute = null)
-        {
-            _executeAsync = executeAsync ?? throw new ArgumentNullException(nameof(executeAsync));
-            _canExecute = canExecute;
-        }
-
-        public event EventHandler? CanExecuteChanged
-        {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
-        }
-
-        public bool CanExecute(object? parameter)
-        {
-            return !_isExecuting && (_canExecute?.Invoke(parameter) ?? true);
-        }
-
-        public async void Execute(object? parameter)
-        {
-            if (CanExecute(parameter))
+            if (disposing)
             {
-                try
+                CancelOperations();
+
+                foreach (var token in _subscriptionTokens)
                 {
-                    _isExecuting = true;
-                    CommandManager.InvalidateRequerySuggested();
-                    await _executeAsync(parameter);
+                    token?.Dispose();
                 }
-                finally
-                {
-                    _isExecuting = false;
-                    CommandManager.InvalidateRequerySuggested();
-                }
+                _subscriptionTokens.Clear();
+                OnDispose();
             }
+
+            _disposed = true;
+        }
+        protected virtual void OnDispose()
+        {
         }
     }
 }

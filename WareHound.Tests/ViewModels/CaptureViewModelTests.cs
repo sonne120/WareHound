@@ -17,6 +17,12 @@ public class CaptureViewModelTests
     private readonly Mock<IEventAggregator> _mockEventAggregator;
     private readonly Mock<ILoggerService> _mockLoggerService;
     private readonly Mock<CaptureStateChangedEvent> _mockCaptureStateEvent;
+    private readonly Mock<ClearPacketsEvent> _mockClearPacketsEvent;
+    private readonly Mock<FilterChangedEvent> _mockFilterChangedEvent;
+    private readonly Mock<AutoScrollChangedEvent> _mockAutoScrollChangedEvent;
+    private readonly Mock<ShowMacAddressesChangedEvent> _mockShowMacAddressesChangedEvent;
+    private readonly Mock<TimeFormatChangedEvent> _mockTimeFormatChangedEvent;
+    private readonly Mock<PacketCapturedEvent> _mockPacketCapturedEvent;
 
     public CaptureViewModelTests()
     {
@@ -25,14 +31,39 @@ public class CaptureViewModelTests
         _mockEventAggregator = new Mock<IEventAggregator>();
         _mockLoggerService = new Mock<ILoggerService>();
         _mockCaptureStateEvent = new Mock<CaptureStateChangedEvent>();
+        _mockClearPacketsEvent = new Mock<ClearPacketsEvent>();
+        _mockFilterChangedEvent = new Mock<FilterChangedEvent>();
+        _mockAutoScrollChangedEvent = new Mock<AutoScrollChangedEvent>();
+        _mockShowMacAddressesChangedEvent = new Mock<ShowMacAddressesChangedEvent>();
+        _mockTimeFormatChangedEvent = new Mock<TimeFormatChangedEvent>();
+        _mockPacketCapturedEvent = new Mock<PacketCapturedEvent>();
 
         _mockSnifferService
             .Setup(s => s.Devices)
             .Returns(new ObservableCollection<NetworkDevice>());
 
+        // Setup all event aggregator subscriptions
         _mockEventAggregator
             .Setup(ea => ea.GetEvent<CaptureStateChangedEvent>())
             .Returns(_mockCaptureStateEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<ClearPacketsEvent>())
+            .Returns(_mockClearPacketsEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<FilterChangedEvent>())
+            .Returns(_mockFilterChangedEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<AutoScrollChangedEvent>())
+            .Returns(_mockAutoScrollChangedEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<ShowMacAddressesChangedEvent>())
+            .Returns(_mockShowMacAddressesChangedEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<TimeFormatChangedEvent>())
+            .Returns(_mockTimeFormatChangedEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<PacketCapturedEvent>())
+            .Returns(_mockPacketCapturedEvent.Object);
     }
 
     [Fact]
