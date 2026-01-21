@@ -12,21 +12,16 @@
 
 namespace WareHound {
 
-//=============================================================================
-// FLOW TRACKER - Main class for tracking network flows (Facade Pattern)
-//=============================================================================
+// FLOW TRACKER  
 // Coordinates:
 // - PacketParser (packet parsing)
 // - FlowTable (flow storage)
 // - TCP State Machine (connection tracking)
 // - ProtocolDetector (application protocol detection)
-//=============================================================================
 
 class FlowTracker {
 public:
-    //-------------------------------------------------------------------------
-    // Configuration
-    //-------------------------------------------------------------------------
+
     struct Config {
         size_t table_size = FlowTable::DEFAULT_TABLE_SIZE;
         size_t max_flows = FlowTable::DEFAULT_MAX_FLOWS;
@@ -36,9 +31,6 @@ public:
         size_t max_payload_size = 65536;
     };
     
-    //-------------------------------------------------------------------------
-    // Constructor
-    //-------------------------------------------------------------------------
     explicit FlowTracker(const Config& config = Config())
         : config_(config)
         , flow_table_(config.table_size, config.max_flows)
@@ -49,11 +41,7 @@ public:
     {
     }
     
-    //=========================================================================
-    // PROCESS PACKET - Main packet processing function
-    //=========================================================================
-    // Returns pointer to FlowEntry or nullptr if packet is invalid
-    //=========================================================================
+    // PROCESS PACKET 
     FlowEntry* ProcessPacket(const uint8_t* raw_data, uint32_t len,
                               uint64_t timestamp_us) 
     {
@@ -129,9 +117,8 @@ public:
         return flow;
     }
     
-    //=========================================================================
+
     // PROCESS PACKET (with pcap header) - Convenience wrapper
-    //=========================================================================
     FlowEntry* ProcessPacket(const struct pcap_pkthdr* pkthdr, const u_char* packet) {
         if (pkthdr == nullptr || packet == nullptr) {
             return nullptr;
@@ -143,9 +130,7 @@ public:
         return ProcessPacket(packet, pkthdr->caplen, timestamp_us);
     }
     
-    //=========================================================================
-    // Getters
-    //=========================================================================
+
     FlowTable& GetFlowTable() { return flow_table_; }
     const FlowTable& GetFlowTable() const { return flow_table_; }
     
@@ -153,9 +138,7 @@ public:
     uint64_t GetPacketsProcessed() const { return packets_processed_; }
     uint64_t GetBytesProcessed() const { return bytes_processed_; }
     
-    //=========================================================================
     // GET PROTOCOL COUNTS - For statistics
-    //=========================================================================
     void GetProtocolCounts(int* counts, int max_count) const {
         std::lock_guard<std::mutex> lock(stats_mutex_);
         int copy_count = (std::min)(max_count, static_cast<int>(protocol_counts_.size()));
@@ -165,9 +148,7 @@ public:
         }
     }
     
-    //=========================================================================
     // GET CAPTURE DURATION - In seconds
-    //=========================================================================
     double GetCaptureDurationSeconds() const {
         if (start_time_us_ == 0) return 0.0;
         auto now = std::chrono::steady_clock::now();
@@ -176,16 +157,13 @@ public:
         return std::chrono::duration<double>(now - start).count();
     }
     
-    //=========================================================================
+
     // FORCE CLEANUP - Manual cleanup trigger
-    //=========================================================================
     size_t ForceCleanup(uint64_t current_time_us) {
         return flow_table_.CleanupExpired(current_time_us, config_.flow_timeout_us);
     }
     
-    //=========================================================================
     // CLEAR - Clear all flows and reset statistics
-    //=========================================================================
     void Clear() {
         flow_table_.Clear();
         packets_processed_ = 0;
@@ -196,9 +174,7 @@ public:
         protocol_counts_.clear();
     }
     
-    //=========================================================================
     // PRINT STATS - Debug output
-    //=========================================================================
     void PrintStats() const {
         std::cout << "[FlowTracker Stats]" << std::endl;
         std::cout << "  Packets processed: " << packets_processed_ << std::endl;
@@ -217,9 +193,8 @@ private:
     mutable std::mutex stats_mutex_;
     std::unordered_map<int, uint64_t> protocol_counts_;
     
-    //=========================================================================
+
     // UPDATE FLOW STATS - Update counters
-    //=========================================================================
     void UpdateFlowStats(FlowEntry* flow, const ParsedPacket& parsed, bool to_server) {
         FlowStats& stats = flow->stats;
         
@@ -245,9 +220,8 @@ private:
         }
     }
     
-    //=========================================================================
+
     // UPDATE TCP STATE - TCP state machine
-    //=========================================================================
     void UpdateTcpState(FlowEntry* flow, const ParsedPacket& parsed, bool to_server) {
         FlowStats& stats = flow->stats;
         uint8_t flags = parsed.tcp_flags;
@@ -347,7 +321,6 @@ private:
                 break;
                 
             case TcpState::TIME_WAIT:
-                // Wait for 2*MSL - usually 60 seconds
                 break;
                 
             default:
@@ -355,9 +328,7 @@ private:
         }
     }
     
-    //=========================================================================
-    // MAYBE CLEANUP - Cleanup if enough time has passed
-    //=========================================================================
+
     void MaybeCleanup(uint64_t current_time_us) {
         if (current_time_us - last_cleanup_us_ > config_.cleanup_interval_us) {
             flow_table_.CleanupExpired(current_time_us, config_.flow_timeout_us);
@@ -366,6 +337,6 @@ private:
     }
 };
 
-} // namespace WareHound
+} 
 
-#endif // FLOW_TRACKER_H
+#endif 

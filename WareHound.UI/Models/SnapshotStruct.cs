@@ -20,5 +20,13 @@ namespace WareHound.UI.Models
         public string DestMac;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 22)]
         public string HostName;
+        
+        // Raw packet data for PCAP file save/load
+        public uint CaptureLen;
+        public uint OriginalLen;
+        public ulong TimestampSec;
+        public uint TimestampUsec;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 65536)]
+        public byte[] RawData;
     }
 }

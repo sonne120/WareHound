@@ -8,20 +8,10 @@
 
 namespace WareHound {
 
-//=============================================================================
-// PROTOCOL DETECTOR - Application protocol detection
-//=============================================================================
-// Two detection methods:
-// 1. By port (fast, ~95% accuracy)
-// 2. By payload signature (slower, ~99% accuracy)
-//=============================================================================
-
 class ProtocolDetector {
 public:
     
-    //=========================================================================
     // DETECT - Main detection function
-    //=========================================================================
     static AppProtocol Detect(const ParsedPacket& packet, uint8_t* confidence = nullptr) {
         AppProtocol result = AppProtocol::UNKNOWN;
         uint8_t conf = 0;
@@ -96,9 +86,8 @@ public:
         }
     }
     
-    //=========================================================================
+ 
     // DETECT BY SIGNATURE - Detection by payload signature
-    //=========================================================================
     static AppProtocol DetectBySignature(const uint8_t* payload, uint16_t len, 
                                           uint8_t* confidence = nullptr) 
     {
@@ -259,9 +248,7 @@ public:
         return AppProtocol::UNKNOWN;
     }
     
-    //=========================================================================
     // GET PROTOCOL NAME - Convert enum to string
-    //=========================================================================
     static const char* GetProtocolName(AppProtocol protocol) {
         switch (protocol) {
             case AppProtocol::HTTP:       return "HTTP";
@@ -290,6 +277,6 @@ public:
     }
 };
 
-} // namespace WareHound
+} 
 
 #endif // PROTOCOL_DETECTOR_H

@@ -148,6 +148,29 @@
                     </StackPanel>
                 </Border>
 
+                <TextBlock Text="FILE OPERATIONS" Style="{StaticResource SectionTitleStyle}" Margin="4,8,0,10"/>
+                
+                <Border Style="{StaticResource SoftCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="PCAP Backend" Style="{StaticResource SettingsTextStyle}"/>
+                                <TextBlock Text="Select library for reading/writing capture files" 
+                                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,2,0,0"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBoxStyle}"
+                                      Width="180" Height="26"
+                                      ItemsSource="{Binding PcapBackends}"
+                                      SelectedIndex="{Binding SelectedPcapBackendIndex}"
+                                      ToolTip="Native uses C++ pcap library. SharpPcap uses managed .NET library."/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
                 <TextBlock Text="ABOUT" Style="{StaticResource SectionTitleStyle}" Margin="4,8,0,10"/>
                 
                 <Border Style="{StaticResource SoftCardStyle}" Margin="0">

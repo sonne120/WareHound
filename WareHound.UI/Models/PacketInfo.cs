@@ -22,6 +22,10 @@ public class PacketInfo : INotifyPropertyChanged
     public string DestMac { get; set; } = "";
     public string HostName { get; set; } = "";
     public DateTime CaptureTime { get; set; }
+    
+    public byte[]? RawData { get; set; }
+    public uint CaptureLen { get; set; }
+    public uint OriginalLen { get; set; }
 
     string unknown = "Unknown";
     
@@ -51,6 +55,26 @@ public class PacketInfo : INotifyPropertyChanged
 
     public static PacketInfo FromSnapshot(SnapshotStruct snapshot, int number)
     {
+        // Convert Unix timestamp to DateTime
+        DateTime captureTime;
+        if (snapshot.TimestampSec > 0)
+        {
+            captureTime = DateTimeOffset.FromUnixTimeSeconds((long)snapshot.TimestampSec)
+                .AddTicks(snapshot.TimestampUsec * 10) // Microseconds to ticks
+                .LocalDateTime;
+        }
+        else
+        {
+            captureTime = DateTime.Now;
+        }
+        
+        byte[]? rawData = null;
+        if (snapshot.CaptureLen > 0 && snapshot.RawData != null)
+        {
+            rawData = new byte[snapshot.CaptureLen];
+            Array.Copy(snapshot.RawData, rawData, (int)snapshot.CaptureLen);
+        }
+        
         return new PacketInfo
         {
             Number = number,
@@ -63,7 +87,38 @@ public class PacketInfo : INotifyPropertyChanged
             SourceMac = snapshot.SourceMac ?? "",
             DestMac = snapshot.DestMac ?? "",
             HostName = snapshot.HostName ?? "",
-            CaptureTime = DateTime.Now
+            CaptureTime = captureTime,
+            RawData = rawData,
+            CaptureLen = snapshot.CaptureLen,
+            OriginalLen = snapshot.OriginalLen
         };
+    }
+    
+    public SnapshotStruct ToSnapshot()
+    {
+        var snapshot = new SnapshotStruct
+        {
+            Id = Id,
+            SourcePort = SourcePort,
+            DestPort = DestPort,
+            Protocol = Protocol,
+            SourceIp = SourceIp,
+            DestIp = DestIp,
+            SourceMac = SourceMac,
+            DestMac = DestMac,
+            HostName = HostName,
+            CaptureLen = CaptureLen,
+            OriginalLen = OriginalLen,
+            TimestampSec = (ulong)new DateTimeOffset(CaptureTime).ToUnixTimeSeconds(),
+            TimestampUsec = (uint)(CaptureTime.Ticks % TimeSpan.TicksPerSecond / 10),
+            RawData = new byte[65536]
+        };
+        
+        if (RawData != null && RawData.Length > 0)
+        {
+            Array.Copy(RawData, snapshot.RawData, Math.Min(RawData.Length, 65536));
+        }
+        
+        return snapshot;
     }
 }

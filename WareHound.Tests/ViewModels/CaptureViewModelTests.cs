@@ -180,23 +180,24 @@ public class CaptureViewModelTests
     }
 
     [Fact]
-    public void FilterText_ShouldNotifyPropertyChanged()
+    public void FilterCriteria_ShouldNotifyPropertyChanged()
     {
         // Arrange
         var viewModel = CreateViewModel();
         var propertyChanged = false;
         viewModel.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(viewModel.FilterText))
+            if (e.PropertyName == nameof(viewModel.FilterCriteria))
                 propertyChanged = true;
         };
 
         // Act
-        viewModel.FilterText = "tcp";
+        viewModel.FilterCriteria = new FilterCriteria { Type = FilterType.Protocol, Value = "tcp" };
 
         // Assert
         propertyChanged.Should().BeTrue();
-        viewModel.FilterText.Should().Be("tcp");
+        viewModel.FilterCriteria.Value.Should().Be("tcp");
+        viewModel.FilterCriteria.Type.Should().Be(FilterType.Protocol);
     }
 
     [Fact]

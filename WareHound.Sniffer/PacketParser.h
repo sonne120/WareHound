@@ -10,9 +10,7 @@
 
 namespace WareHound {
 
-//=============================================================================
 // TCP FLAGS
-//=============================================================================
 namespace TcpFlags {
     constexpr uint8_t FIN = 0x01;
     constexpr uint8_t SYN = 0x02;
@@ -24,9 +22,7 @@ namespace TcpFlags {
     constexpr uint8_t CWR = 0x80;
 }
 
-//=============================================================================
 // TCP STATE - For connection tracking
-//=============================================================================
 enum class TcpState : uint8_t {
     CLOSED = 0,
     LISTEN,
@@ -41,9 +37,7 @@ enum class TcpState : uint8_t {
     TIME_WAIT
 };
 
-//=============================================================================
 // APPLICATION PROTOCOL - Detected protocol
-//=============================================================================
 enum class AppProtocol : uint8_t {
     UNKNOWN = 0,
     HTTP,
@@ -69,9 +63,7 @@ enum class AppProtocol : uint8_t {
     QUIC
 };
 
-//=============================================================================
 // FLOW KEY - Unique identifier for a network flow
-//=============================================================================
 struct FlowKey {
     uint32_t src_ip;
     uint32_t dst_ip;
@@ -94,9 +86,8 @@ struct FlowKey {
     }
 };
 
-//=============================================================================
+
 // FLOW KEY HASH
-//=============================================================================
 struct FlowKeyHash {
     size_t operator()(const FlowKey& key) const {
         size_t h1 = std::hash<uint32_t>()(key.src_ip);
@@ -108,9 +99,7 @@ struct FlowKeyHash {
     }
 };
 
-//=============================================================================
 // PARSED PACKET - Result of packet parsing
-//=============================================================================
 struct ParsedPacket {
     // Timestamps
     uint64_t timestamp_us = 0;
@@ -179,9 +168,8 @@ struct ParsedPacket {
     }
 };
 
-//=============================================================================
+
 // PACKET PARSER - Parse raw packet data
-//=============================================================================
 class PacketParser {
 public:
     static bool Parse(const uint8_t* data, uint32_t len, uint64_t timestamp_us, 
@@ -271,6 +259,6 @@ public:
     }
 };
 
-} // namespace WareHound
+} 
 
-#endif // PACKET_PARSER_H
+#endif 

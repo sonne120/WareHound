@@ -6,14 +6,16 @@
 #define SNIFFER_API __declspec(dllimport)
 #endif
 
+#include "struct.h"
+
 extern "C" {
     typedef void(__cdecl* PacketCallback)(const char* packetData);
 
-    SNIFFER_API void* Sniffer_Create();
-    SNIFFER_API void Sniffer_Destroy(void* sniffer);
     SNIFFER_API int Sniffer_GetDeviceCount();
     SNIFFER_API const char* Sniffer_GetDeviceName(int index);
-    SNIFFER_API void Sniffer_SelectDevice(void* sniffer, int deviceIndex);
-    SNIFFER_API void Sniffer_Start(void* sniffer, PacketCallback callback);
-    SNIFFER_API void Sniffer_Stop(void* sniffer);
+    
+    // PCAP file operations
+    SNIFFER_API bool Sniffer_SavePcap(const char* filePath, const Snapshot* packets, int packetCount);
+    SNIFFER_API Snapshot* Sniffer_LoadPcap(const char* filePath, int* packetCount);
+    SNIFFER_API void Sniffer_FreePcapData(Snapshot* data);
 }

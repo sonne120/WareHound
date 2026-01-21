@@ -20,6 +20,13 @@ namespace WareHound.UI.Infrastructure.DependencyInjection
             // Register Application Services
             containerRegistry.RegisterSingleton<ISnifferService, SnifferService>();
             containerRegistry.RegisterSingleton<IPacketCollectionService, PacketCollectionService>();
+            
+            // Register PCAP file services (both backends available)
+            containerRegistry.Register<NativePcapFileService>();
+            containerRegistry.Register<SharpPcapFileService>();
+            
+            // Register factory for selecting PCAP backend based on settings
+            containerRegistry.RegisterSingleton<PcapFileServiceFactory>();
 
             // Register Views
             containerRegistry.Register<MainWindow>();

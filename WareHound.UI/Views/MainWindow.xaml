@@ -311,25 +311,65 @@
                                     Command="{Binding ClearCommand}" 
                                     Content="Clear"
                                     Height="26"
-                                    Margin="0,0,16,0"
+                                    Margin="0,0,8,0"
                                     Padding="16,0"/>
 
-                            <!-- Filter Box -->
-                            <Grid VerticalAlignment="Center">
-                                <TextBlock Text="Filter:" VerticalAlignment="Center" 
-                                           Foreground="{StaticResource TextSecondaryBrush}" 
-                                           Margin="10,0,0,0" 
-                                           IsHitTestVisible="False"
-                                           Panel.ZIndex="1"
-                                           Visibility="{Binding FilterText, Converter={StaticResource NullToVisibility}, ConverterParameter=Invert}"/>
-                                <TextBox x:Name="FilterTextBox" 
-                                         AutomationProperties.AutomationId="FilterTextBox"
-                                         Style="{StaticResource ModernTextBoxStyle}"
-                                         Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" 
-                                         Width="180" Height="26"
-                                         Padding="8,0"
-                                         VerticalContentAlignment="Center"/>
-                            </Grid>
+                            <Separator Style="{StaticResource VerticalSeparatorStyle}" Margin="4,6"/>
+
+                            <!-- PCAP File Operations -->
+                            <Button Style="{StaticResource CaptureControlButtonStyle}"
+                                    Tag="{StaticResource OpenIcon}"
+                                    Command="{Binding OpenPcapCommand}"
+                                    ToolTip="Open PCAP File"
+                                    Margin="4,0,0,0"/>
+                            <Button Style="{StaticResource CaptureControlButtonStyle}"
+                                    Tag="{StaticResource SaveIcon}"
+                                    Command="{Binding SavePcapCommand}"
+                                    ToolTip="Save as PCAP"/>
+
+                            <!-- Filter Section -->
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <!-- Filter Type ComboBox -->
+                                <ComboBox x:Name="FilterTypeComboBox"
+                                          Style="{StaticResource ModernComboBoxStyle}"
+                                          ItemsSource="{Binding FilterTypes}"
+                                          SelectedItem="{Binding SelectedFilterType}"
+                                          DisplayMemberPath="DisplayName"
+                                          Width="100" Height="26"
+                                          Margin="0,0,4,0"/>
+
+                                <!-- Filter Value TextBox (shown when filter type is selected) -->
+                                <Grid VerticalAlignment="Center" 
+                                      Visibility="{Binding IsFilterTypeSelected, Converter={StaticResource BoolToVisibility}}">
+                                    <TextBlock Text="{Binding FilterPlaceholder}" 
+                                               VerticalAlignment="Center" 
+                                               Foreground="{StaticResource TextSecondaryBrush}" 
+                                               Margin="10,0,0,0" 
+                                               IsHitTestVisible="False"
+                                               Panel.ZIndex="1"
+                                               Visibility="{Binding FilterText, Converter={StaticResource NullToVisibility}, ConverterParameter=Invert}"/>
+                                    <TextBox x:Name="FilterTextBox" 
+                                             AutomationProperties.AutomationId="FilterTextBox"
+                                             Style="{StaticResource ModernTextBoxStyle}"
+                                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" 
+                                             Width="150" Height="26"
+                                             Padding="8,0"
+                                             VerticalContentAlignment="Center"/>
+                                </Grid>
+
+                                <!-- Clear Filter Button -->
+                                <Button Style="{StaticResource WindowControlButtonStyle}"
+                                        Command="{Binding ClearFilterCommand}"
+                                        ToolTip="Clear Filter"
+                                        Margin="4,0,0,0"
+                                        Width="26" Height="26"
+                                        Visibility="{Binding IsFilterTypeSelected, Converter={StaticResource BoolToVisibility}}">
+                                    <Path Data="{StaticResource CloseIcon}" 
+                                          Width="10" Height="10"
+                                          Stretch="Uniform"
+                                          Fill="{DynamicResource TextSecondaryBrush}"/>
+                                </Button>
+                            </StackPanel>
                             
                             <!-- Packet Count -->
                             <TextBlock Margin="16,0,0,0"

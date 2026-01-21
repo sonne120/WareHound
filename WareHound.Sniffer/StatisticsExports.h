@@ -10,9 +10,7 @@
 
 #include <cstdint>
 
-//=============================================================================
-// NATIVE STATISTICS STRUCTURES - For C# interop
-//=============================================================================
+// NATIVE STATISTICS STRUCTURES 
 
 #pragma pack(push, 1)
 
@@ -82,4 +80,4 @@ extern "C" {
     SNIFFER_API uint64_t Sniffer_GetFlowCount(void* sniffer);
 }
 
-#endif // STATISTICS_EXPORTS_H
+#endif 

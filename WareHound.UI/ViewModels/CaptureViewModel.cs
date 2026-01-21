@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Threading;
@@ -19,7 +20,7 @@ namespace WareHound.UI.ViewModels
         private readonly ILoggerService _logger;
 
         private NetworkDevice? _selectedDevice;
-        private string _filterText = "";
+        private FilterCriteria _filterCriteria = FilterCriteria.Empty;
         private bool _isCapturing;
         private PacketInfo? _selectedPacket;
         private ObservableCollection<TreeNode> _packetDetails = new();
@@ -51,11 +52,14 @@ namespace WareHound.UI.ViewModels
             set => SetProperty(ref _selectedDevice, value);
         }
 
-        public string FilterText
+        public FilterCriteria FilterCriteria
         {
-            get => _filterText;
-            set => SetProperty(ref _filterText, value);
+            get => _filterCriteria;
+            set => SetProperty(ref _filterCriteria, value);
         }
+
+        // Keep FilterText for backward compatibility with UI bindings
+        public string FilterText => _filterCriteria.Value;
 
         public bool IsCapturing
         {
@@ -99,11 +103,13 @@ namespace WareHound.UI.ViewModels
             
             Subscribe<CaptureStateChangedEvent, bool>(OnCaptureStateChanged);
             Subscribe<ClearPacketsEvent>(Clear);
-            Subscribe<FilterChangedEvent, string>(filter => FilterText = filter);
+            Subscribe<FilterChangedEvent, FilterCriteria>(criteria => FilterCriteria = criteria);
             Subscribe<AutoScrollChangedEvent, bool>(enabled => AutoScroll = enabled);
             Subscribe<ShowMacAddressesChangedEvent, bool>(enabled => ShowMacAddresses = enabled);
             Subscribe<TimeFormatChangedEvent, TimeFormatType>(OnTimeFormatChanged);
             Subscribe<DevicesLoadedEvent>(OnDevicesLoaded);
+            Subscribe<PcapLoadedEvent, IList<PacketInfo>>(OnPcapLoaded);
+            Subscribe<PcapSaveRequestEvent>(OnPcapSaveRequest);
 
             ToggleCaptureCommand = new DelegateCommand(ToggleCapture);
             ClearCommand = new DelegateCommand(Clear);
@@ -117,14 +123,38 @@ namespace WareHound.UI.ViewModels
 
             _snifferService.ErrorOccurred += OnError;
 
-            // Select first device if already loaded (for late navigation)
+        
             if (Devices.Count > 0 && SelectedDevice == null)
                 SelectedDevice = Devices[0];
         }
 
+        private void OnPcapLoaded(IList<PacketInfo> packets)
+        {
+            RunOnUI(() =>
+            {
+                Packets.Clear();
+                foreach (var packet in packets)
+                {
+                    Packets.Add(packet);
+                }
+                
+                if (Packets.Count > 0)
+                {
+                    _hasPackets = true;
+                    SaveToDashboardCommand.RaiseCanExecuteChanged();
+                }
+            });
+        }
+
+        private void OnPcapSaveRequest()
+        {
+            // Respond with current packets that have raw data
+            var packetsWithRawData = Packets.Where(p => p.RawData != null && p.CaptureLen > 0).ToList();
+            Publish<PcapSaveResponseEvent, IList<PacketInfo>>(packetsWithRawData);
+        }
+
         private void OnDevicesLoaded()
         {
-            // Select first device when devices finish loading
             if (Devices.Count > 0 && SelectedDevice == null)
             {
                 SelectedDevice = Devices[0];

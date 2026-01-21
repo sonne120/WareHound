@@ -94,6 +94,7 @@
     <ClCompile Include="packages_globals.cpp" />
     <ClCompile Include="builderDevice.cpp" />
     <ClCompile Include="Sniffer.cpp" />
+    <ClCompile Include="SnifferExports.cpp" />
     <ClCompile Include="StatisticsExports.cpp" />
   </ItemGroup>
   <ItemGroup>

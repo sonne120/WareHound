@@ -10,10 +10,7 @@
 
 using namespace WareHound;
 
-//=============================================================================
 // GLOBAL FLOW TRACKER INSTANCE
-//=============================================================================
-
 static std::unique_ptr<FlowTracker> g_flowTracker;
 static std::mutex g_flowTrackerMutex;
 static bool g_nativeStatsEnabled = false;
@@ -24,10 +21,7 @@ static std::unordered_map<uint32_t, uint64_t> g_destIPCounts;
 static std::unordered_map<uint16_t, uint64_t> g_portCounts;
 static std::mutex g_ipStatsMutex;
 
-//=============================================================================
 // HELPER FUNCTIONS
-//=============================================================================
-
 static void IP4ToString(uint32_t ip, char* buffer, size_t bufferSize) {
     struct in_addr addr;
     addr.s_addr = ip;
@@ -64,9 +58,7 @@ static const char* GetServiceName(uint16_t port) {
     }
 }
 
-//=============================================================================
 // INITIALIZATION
-//=============================================================================
 
 void InitFlowTracker() {
     std::lock_guard<std::mutex> lock(g_flowTrackerMutex);
@@ -97,9 +89,7 @@ void ProcessPacketForStats(const uint8_t* data, uint32_t len, uint64_t timestamp
     }
 }
 
-//=============================================================================
 // EXPORTS IMPLEMENTATION
-//=============================================================================
 
 extern "C" {
 

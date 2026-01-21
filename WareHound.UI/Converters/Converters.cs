@@ -95,7 +95,6 @@ public class PercentToWidthConverter : IValueConverter
     {
         if (value is double percent)
         {
-            // Max width of progress bar is approximately 200 pixels
             return Math.Max(0, Math.Min(200, percent * 2));
         }
         return 0;
@@ -105,10 +104,6 @@ public class PercentToWidthConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>
-/// Returns true only if all input boolean values are false.
-/// Useful for enabling controls when multiple conditions are all false.
-/// </summary>
 public class AllFalseConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)

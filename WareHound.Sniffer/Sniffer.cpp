@@ -409,6 +409,16 @@ void PacketCapturer::ProcessPacket(const struct pcap_pkthdr* pkthdr, const u_cha
     tagSnapshot item;
     parserHelper.addToStruct(protoStr, packet_srcip, packet_dstip, source_mac, dest_mac, packet_id, dst_port, src_port, host_names, item);
     
+    // Store raw packet data for PCAP save functionality
+    item.capture_len = pkthdr->caplen;
+    item.original_len = pkthdr->len;
+    item.timestamp_sec = static_cast<uint64_t>(pkthdr->ts.tv_sec);
+    item.timestamp_usec = static_cast<uint32_t>(pkthdr->ts.tv_usec);
+    
+    // Copy raw packet bytes (limited to 65536 max)
+    uint32_t copy_len = (pkthdr->caplen > 65536) ? 65536 : pkthdr->caplen;
+    memcpy(item.raw_data, packet, copy_len);
+    
     buffer->Push(item);
 }
 
