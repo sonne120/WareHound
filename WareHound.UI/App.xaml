@@ -27,6 +27,7 @@
             <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
             <conv:BoolToStatusConverter x:Key="BoolToStatus"/>
             <conv:PercentToWidthConverter x:Key="PercentToWidth"/>
+            <conv:AllFalseConverter x:Key="AllFalseConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </prism:PrismApplication>

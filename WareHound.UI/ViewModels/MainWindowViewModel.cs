@@ -22,6 +22,8 @@ namespace WareHound.UI.ViewModels
         private DateTime _currentTime;
         private bool _isCapturing;
         private NetworkDevice? _selectedDevice;
+        private bool _isLoadingDevices;
+        private string _deviceLoadError = "";
 
         public string StatusText
         {
@@ -47,6 +49,26 @@ namespace WareHound.UI.ViewModels
             set => SetProperty(ref _isCapturing, value);
         }
 
+        public bool IsLoadingDevices
+        {
+            get => _isLoadingDevices;
+            set => SetProperty(ref _isLoadingDevices, value);
+        }
+
+        public string DeviceLoadError
+        {
+            get => _deviceLoadError;
+            set
+            {
+                if (SetProperty(ref _deviceLoadError, value))
+                {
+                    RaisePropertyChanged(nameof(HasDeviceLoadError));
+                }
+            }
+        }
+
+        public bool HasDeviceLoadError => !string.IsNullOrEmpty(DeviceLoadError);
+
         public NetworkDevice? SelectedDevice
         {
             get => _selectedDevice;
@@ -64,6 +86,7 @@ namespace WareHound.UI.ViewModels
         public DelegateCommand StartCaptureCommand { get; }
         public DelegateCommand StopCaptureCommand { get; }
         public DelegateCommand ClearCommand { get; }
+        public DelegateCommand RetryLoadDevicesCommand { get; }
 
         private string _filterText = "";
         public string FilterText
@@ -87,13 +110,16 @@ namespace WareHound.UI.ViewModels
             NavigateCommand = new DelegateCommand<string>(Navigate);
             StartCaptureCommand = new DelegateCommand(StartCapture, CanStartCapture)
                 .ObservesProperty(() => IsCapturing)
-                .ObservesProperty(() => SelectedDevice);
+                .ObservesProperty(() => SelectedDevice)
+                .ObservesProperty(() => IsLoadingDevices);
             StopCaptureCommand = new DelegateCommand(StopCapture, CanStopCapture)
                 .ObservesProperty(() => IsCapturing);
             ClearCommand = new DelegateCommand(ClearPackets);
+            RetryLoadDevicesCommand = new DelegateCommand(async () => await LoadDevicesAsync(), () => !IsLoadingDevices)
+                .ObservesProperty(() => IsLoadingDevices);
 
-            // Subscribe to packet events
-            //_snifferService.PacketReceived += OnPacketReceived;
+            // Subscribe to packet events for counter display
+            Subscribe<PacketCapturedEvent, PacketInfo>(OnPacketReceived);
 
             // Status update timer
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -102,9 +128,52 @@ namespace WareHound.UI.ViewModels
 
             CurrentTime = DateTime.Now;
 
-            // Select first device 
-            if (Devices.Count > 0)
-                SelectedDevice = Devices[0];
+            // Load devices asynchronously after UI is ready
+            _ = InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
+            await LoadDevicesAsync();
+        }
+
+        private async Task LoadDevicesAsync()
+        {
+            IsLoadingDevices = true;
+            DeviceLoadError = "";
+            Publish<DevicesLoadingEvent, bool>(true);
+
+            try
+            {
+                await _snifferService.LoadDevicesAsync(TimeSpan.FromSeconds(30));
+                
+                // Select first device after successful load
+                if (Devices.Count > 0 && SelectedDevice == null)
+                {
+                    SelectedDevice = Devices[0];
+                }
+                
+                Publish<DevicesLoadedEvent>();
+            }
+            catch (TimeoutException ex)
+            {
+                DeviceLoadError = "Device loading timed out. Please retry.";
+                Publish<DevicesLoadFailedEvent, string>(ex.Message);
+            }
+            catch (OperationCanceledException)
+            {
+                // Cancelled - don't show error
+            }
+            catch (Exception ex)
+            {
+                DeviceLoadError = $"Failed to load devices: {ex.Message}";
+                Publish<DevicesLoadFailedEvent, string>(ex.Message);
+            }
+            finally
+            {
+                IsLoadingDevices = false;
+                Publish<DevicesLoadingEvent, bool>(false);
+            }
         }
 
         private void ClearPackets()
@@ -133,7 +202,7 @@ namespace WareHound.UI.ViewModels
             }
         }
 
-        private bool CanStartCapture() => SelectedDevice != null && !IsCapturing;
+        private bool CanStartCapture() => SelectedDevice != null && !IsCapturing && !IsLoadingDevices;
 
         private void StopCapture()
         {
@@ -148,7 +217,8 @@ namespace WareHound.UI.ViewModels
 
         private void OnPacketReceived(PacketInfo packet)
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(() => PacketCount++);
+            // Event is already published from UI thread
+            PacketCount++;
         }
 
         private void OnStatusTimerTick(object? sender, EventArgs e)

@@ -51,7 +51,6 @@ namespace WareHound.UI.IPC
         public void Stop()
         {
             StopCapturePtr.Stop();
-            // Allow some time for the C++ thread to wind down
             Thread.Sleep(200);
         
             StreamPtr.Reset();

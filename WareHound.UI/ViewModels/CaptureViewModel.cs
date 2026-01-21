@@ -103,6 +103,7 @@ namespace WareHound.UI.ViewModels
             Subscribe<AutoScrollChangedEvent, bool>(enabled => AutoScroll = enabled);
             Subscribe<ShowMacAddressesChangedEvent, bool>(enabled => ShowMacAddresses = enabled);
             Subscribe<TimeFormatChangedEvent, TimeFormatType>(OnTimeFormatChanged);
+            Subscribe<DevicesLoadedEvent>(OnDevicesLoaded);
 
             ToggleCaptureCommand = new DelegateCommand(ToggleCapture);
             ClearCommand = new DelegateCommand(Clear);
@@ -116,8 +117,18 @@ namespace WareHound.UI.ViewModels
 
             _snifferService.ErrorOccurred += OnError;
 
-            if (Devices.Count > 0)
+            // Select first device if already loaded (for late navigation)
+            if (Devices.Count > 0 && SelectedDevice == null)
                 SelectedDevice = Devices[0];
+        }
+
+        private void OnDevicesLoaded()
+        {
+            // Select first device when devices finish loading
+            if (Devices.Count > 0 && SelectedDevice == null)
+            {
+                SelectedDevice = Devices[0];
+            }
         }
 
         private void OnTimeFormatChanged(TimeFormatType format)

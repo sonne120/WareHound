@@ -41,31 +41,24 @@ namespace WareHound.UI.Services
         private bool _disposed;
         private int _selectedDeviceIndex = 1;
         
-        // Channel for async packet streaming
         private Channel<PacketInfo>? _packetChannel;
+        private bool _isLoadingDevices;
 
         public ObservableCollection<NetworkDevice> Devices { get; } = new();
         public bool IsCapturing => _isCapturing;
         public int SelectedDeviceIndex => _selectedDeviceIndex;
+        public bool IsLoadingDevices => _isLoadingDevices;
 
         public event Action<string>? ErrorOccurred;
+        public event Action? DevicesLoaded;
+        public event Action? DevicesLoadingStarted;
 
         public SnifferService(ISnifferInterop snifferInterop, ILoggerService logger)
         {
             _snifferInterop = snifferInterop ?? throw new ArgumentNullException(nameof(snifferInterop));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-            try
-            {
-                _logger.LogDebug("SnifferService: Initializing...");
-                LoadDevices();
-                _logger.LogDebug("SnifferService: Initialization complete");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("SnifferService: Initialization failed", ex);
-                throw;
-            }
+            _logger.LogDebug("SnifferService: Initialized (devices will be loaded on demand)");
         }
 
         public void SelectDevice(int deviceIndex)
@@ -83,6 +76,9 @@ namespace WareHound.UI.Services
         {
             try
             {
+                _isLoadingDevices = true;
+                DevicesLoadingStarted?.Invoke();
+                
                 _logger.LogDebug("Loading network devices...");
                 Devices.Clear();
 
@@ -95,11 +91,94 @@ namespace WareHound.UI.Services
                     Devices.Add(device);
                     _logger.LogDebug($"Device {i}: {device.DisplayName}");
                 }
+                
+                DevicesLoaded?.Invoke();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Failed to load devices", ex);
                 ErrorOccurred?.Invoke($"Failed to load devices: {ex.Message}");
+            }
+            finally
+            {
+                _isLoadingDevices = false;
+            }
+        }
+
+        public async Task LoadDevicesAsync(CancellationToken cancellationToken = default)
+        {
+            await LoadDevicesAsync(TimeSpan.FromSeconds(30), cancellationToken);
+        }
+
+        public Task LoadDevicesAsync(TimeSpan timeout)
+        {
+            return LoadDevicesAsync(timeout, CancellationToken.None);
+        }
+
+        public async Task LoadDevicesAsync(TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            if (_isLoadingDevices)
+            {
+                _logger.LogDebug("LoadDevicesAsync: Already loading, skipping");
+                return;
+            }
+
+            try
+            {
+                _isLoadingDevices = true;
+                DevicesLoadingStarted?.Invoke();
+                
+                _logger.LogDebug("Loading network devices asynchronously...");
+
+                using var timeoutCts = new CancellationTokenSource(timeout);
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+                List<string> deviceNames;
+                try
+                {
+                    deviceNames = await Task.Run(() => _snifferInterop.GetDevices(), linkedCts.Token);
+                }
+                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                {
+                    throw new TimeoutException($"Device enumeration timed out after {timeout.TotalSeconds} seconds");
+                }
+
+                _logger.Log($"Found {deviceNames.Count} network devices");
+
+                // Update the collection on the UI thread
+                System.Windows.Application.Current?.Dispatcher.Invoke(() =>
+                {
+                    Devices.Clear();
+                    for (int i = 0; i < deviceNames.Count; i++)
+                    {
+                        var device = ParseDeviceName(deviceNames[i], i);
+                        Devices.Add(device);
+                        _logger.LogDebug($"Device {i}: {device.DisplayName}");
+                    }
+                });
+
+                DevicesLoaded?.Invoke();
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogDebug("Device loading was cancelled");
+                throw;
+            }
+            catch (TimeoutException ex)
+            {
+                _logger.LogError("Device loading timed out", ex);
+                ErrorOccurred?.Invoke(ex.Message);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to load devices asynchronously", ex);
+                ErrorOccurred?.Invoke($"Failed to load devices: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _isLoadingDevices = false;
             }
         }
 
@@ -204,25 +283,20 @@ namespace WareHound.UI.Services
                 throw new InvalidOperationException($"Failed to create synchronization event. Win32 Error: {error}");
             }
 
-            // Start C++ sniffer thread
             Task.Run(() => _snifferInterop.Initialize(deviceIndex));
 
-            // Wait for pipe server to start
             Thread.Sleep(PipeServerStartDelayMs);
 
-            // Connect to named pipe
             _pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
             _pipeClient.Connect(PipeConnectionTimeoutMs);
 
             // Signal event to start capture
             SetEvent(_eventHandle);
 
-            // Select device
             _snifferInterop.SelectDevice(deviceIndex);
 
             _isCapturing = true;
 
-            // Start pipe reader thread
             _pipeReaderThread = new Thread(PipeReaderLoop)
             {
                 IsBackground = true,
@@ -236,7 +310,6 @@ namespace WareHound.UI.Services
             _isCapturing = false;
             _cts?.Cancel();
 
-            // Complete the channel to signal consumers that no more packets will be written
             _packetChannel?.Writer.TryComplete();
 
             _snifferInterop.Stop();
@@ -303,7 +376,6 @@ namespace WareHound.UI.Services
                 _packetNumber++;
                 var packet = PacketInfo.FromSnapshot(snapshot, _packetNumber);
                 
-                // Write to channel 
                 var written = _packetChannel?.Writer.TryWrite(packet) ?? false;
                 
                 if (_packetNumber <= 5 || _packetNumber % 100 == 0)

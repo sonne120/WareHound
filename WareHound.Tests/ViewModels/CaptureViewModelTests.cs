@@ -23,6 +23,7 @@ public class CaptureViewModelTests
     private readonly Mock<ShowMacAddressesChangedEvent> _mockShowMacAddressesChangedEvent;
     private readonly Mock<TimeFormatChangedEvent> _mockTimeFormatChangedEvent;
     private readonly Mock<PacketCapturedEvent> _mockPacketCapturedEvent;
+    private readonly Mock<DevicesLoadedEvent> _mockDevicesLoadedEvent;
 
     public CaptureViewModelTests()
     {
@@ -37,6 +38,7 @@ public class CaptureViewModelTests
         _mockShowMacAddressesChangedEvent = new Mock<ShowMacAddressesChangedEvent>();
         _mockTimeFormatChangedEvent = new Mock<TimeFormatChangedEvent>();
         _mockPacketCapturedEvent = new Mock<PacketCapturedEvent>();
+        _mockDevicesLoadedEvent = new Mock<DevicesLoadedEvent>();
 
         _mockSnifferService
             .Setup(s => s.Devices)
@@ -64,6 +66,9 @@ public class CaptureViewModelTests
         _mockEventAggregator
             .Setup(ea => ea.GetEvent<PacketCapturedEvent>())
             .Returns(_mockPacketCapturedEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<DevicesLoadedEvent>())
+            .Returns(_mockDevicesLoadedEvent.Object);
     }
 
     [Fact]

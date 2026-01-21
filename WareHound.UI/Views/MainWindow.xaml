@@ -203,13 +203,87 @@
                         <StackPanel Grid.Column="1" Orientation="Horizontal" 
                                     HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Margin="16,0,0,0">
-                            <!-- Interface Selection -->
-                            <ComboBox Style="{StaticResource ModernComboBoxStyle}"
-                                      Width="280" Height="26"
-                                      ItemsSource="{Binding Devices}" 
-                                      SelectedItem="{Binding SelectedDevice}"
-                                      DisplayMemberPath="DisplayName"
-                                      IsEnabled="{Binding IsCapturing, Converter={StaticResource InverseBool}}"/>
+                            <!-- Interface Selection with Loading Overlay -->
+                            <Grid Width="280">
+                                <!-- ComboBox - shown when not loading and no error -->
+                                <ComboBox Style="{StaticResource ModernComboBoxStyle}"
+                                          Height="26"
+                                          ItemsSource="{Binding Devices}" 
+                                          SelectedItem="{Binding SelectedDevice}"
+                                          DisplayMemberPath="DisplayName"
+                                          Visibility="{Binding IsLoadingDevices, Converter={StaticResource InverseBoolToVisibility}}">
+                                    <ComboBox.IsEnabled>
+                                        <MultiBinding Converter="{StaticResource AllFalseConverter}">
+                                            <Binding Path="IsCapturing"/>
+                                            <Binding Path="HasDeviceLoadError"/>
+                                        </MultiBinding>
+                                    </ComboBox.IsEnabled>
+                                </ComboBox>
+                                
+                                <!-- Loading Spinner - shown when loading -->
+                                <Border Background="{DynamicResource TertiaryBrush}" 
+                                        CornerRadius="4" Height="26"
+                                        Visibility="{Binding IsLoadingDevices, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource RefreshIcon}" 
+                                              Width="14" Height="14"
+                                              Stretch="Uniform"
+                                              Fill="{DynamicResource SecondaryTextBrush}"
+                                              RenderTransformOrigin="0.5,0.5">
+                                            <Path.RenderTransform>
+                                                <RotateTransform x:Name="SpinnerRotation"/>
+                                            </Path.RenderTransform>
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsLoadingDevices}" Value="True">
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard>
+                                                                    <Storyboard RepeatBehavior="Forever">
+                                                                        <DoubleAnimation Storyboard.TargetProperty="(Path.RenderTransform).(RotateTransform.Angle)"
+                                                                                         From="0" To="360" Duration="0:0:1"/>
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+                                        <TextBlock Text="Loading devices..." 
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="11"
+                                                   Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Error with Retry - shown when loading failed -->
+                                <Border Background="{DynamicResource ErrorBrush}" 
+                                        CornerRadius="4" Height="26"
+                                        Opacity="0.9"
+                                        Visibility="{Binding HasDeviceLoadError, Converter={StaticResource BoolToVisibility}}">
+                                    <Grid>
+                                        <TextBlock Text="{Binding DeviceLoadError}" 
+                                                   Foreground="White"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Left"
+                                                   FontSize="10"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Margin="8,0,60,0"
+                                                   ToolTip="{Binding DeviceLoadError}"/>
+                                        <Button Content="Retry" 
+                                                Command="{Binding RetryLoadDevicesCommand}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                Padding="8,2"
+                                                Margin="0,0,4,0"
+                                                FontSize="10"
+                                                Background="White"
+                                                Foreground="{DynamicResource ErrorBrush}"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
                             
                             <!-- Play/Stop Buttons -->
                             <Button Style="{StaticResource CaptureControlButtonStyle}"

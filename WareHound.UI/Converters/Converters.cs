@@ -104,3 +104,23 @@ public class PercentToWidthConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+/// <summary>
+/// Returns true only if all input boolean values are false.
+/// Useful for enabling controls when multiple conditions are all false.
+/// </summary>
+public class AllFalseConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        foreach (var value in values)
+        {
+            if (value is bool b && b)
+                return false;
+        }
+        return true;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

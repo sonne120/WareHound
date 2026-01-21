@@ -47,8 +47,6 @@ public struct NativeCaptureStatistics
     public int UniqueDestIPs;
 }
 
-
-// navive statistic intetop
 public interface INativeStatisticsInterop
 {
     void EnableNativeStats(bool enable);
