@@ -101,13 +101,35 @@ typedef struct tagSnapshot {
     char source_mac[22];
     char dest_mac[22];
     char host_name[22];
-    // Raw packet data for PCAP file save/load
-    uint32_t capture_len;      // Actual captured length
-    uint32_t original_len;     // Original packet length on wire
-    uint64_t timestamp_sec;    // Seconds since Unix epoch
-    uint32_t timestamp_usec;   // Microseconds component
-    uint8_t raw_data[65536];   // Raw packet bytes (max snaplen)
+    uint32_t capture_len;      
+    uint32_t original_len;     
+    uint64_t timestamp_sec;    
+    uint32_t timestamp_usec;  
+    uint8_t raw_data[65536];   
 } Snapshot;
+
+
+typedef struct tagSnapshotHeader {
+    int id;
+    int source_port;
+    int dest_port;
+    char proto[22];
+    char source_ip[22];
+    char dest_ip[22];
+    char source_mac[22];
+    char dest_mac[22];
+    char host_name[22];
+    uint32_t capture_len;      
+    uint32_t original_len;   
+    uint64_t timestamp_sec;    
+    uint32_t timestamp_usec;   
+    
+} SnapshotHeader;
+
+
+inline size_t GetSnapshotIPCSize(const Snapshot* snap) {
+    return sizeof(SnapshotHeader) + snap->capture_len;
+}
 #pragma pack(pop)
 
 #endif // STRUCT_H

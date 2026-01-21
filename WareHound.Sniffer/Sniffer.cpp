@@ -472,18 +472,8 @@ void PipeWriterSubscriber::OnPacketCaptured(const tagSnapshot& packet) {
     if (hPipe != INVALID_HANDLE_VALUE) {
         DWORD written = 0;
         
-        // Debug log hostname - first 10 packets
-        static int debugCount = 0;
-        if (debugCount++ < 10) {
-            std::ofstream log("c:\\repo\\WareHound1\\cpp_debug.log", std::ios::app);
-            if (log.is_open()) {
-                log << "[PipeWriter] Packet #" << debugCount << ": host_name='" << packet.host_name << "'" << std::endl;
-            }
-        }
-        
         BOOL success = WriteFile(hPipe, &packet, sizeof(tagSnapshot), &written, NULL);
         
-       
         if (!success) {
             hPipe = INVALID_HANDLE_VALUE;
         } else if (written != sizeof(tagSnapshot)) {

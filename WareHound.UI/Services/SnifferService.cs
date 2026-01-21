@@ -329,7 +329,7 @@ namespace WareHound.UI.Services
         {
             int structSize = Marshal.SizeOf<SnapshotStruct>();
             byte[] buffer = new byte[structSize];
-
+            
             _logger.LogDebug($"PipeReaderLoop started, struct size = {structSize}");
 
             while (_isCapturing && !(_cts?.IsCancellationRequested ?? true))
@@ -362,7 +362,7 @@ namespace WareHound.UI.Services
 
             _logger.LogDebug("PipeReaderLoop ended");
         }
-
+        
         private void ProcessPacketBuffer(byte[] buffer)
         {
             GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);

@@ -5,17 +5,16 @@
 #include "PacketParser.h"
 #include <unordered_map>
 #include <mutex>
+#include <shared_mutex>
 #include <vector>
 #include <atomic>
 #include <iostream>
+#include <algorithm>
+#include <functional>
 
 namespace WareHound {
 
-//=============================================================================
-// FLOW STATS - Statistics for a single flow
-//=============================================================================
 struct FlowStats {
-    // Timestamps (microseconds)
     uint64_t first_seen_us = 0;
     uint64_t last_seen_us = 0;
     
@@ -51,9 +50,8 @@ struct FlowStats {
     uint64_t TotalBytes() const { return bytes_to_server + bytes_to_client; }
 };
 
-//=============================================================================
+
 // FLOW ENTRY - Single flow in the table
-//=============================================================================
 struct FlowEntry {
     FlowKey key;
     FlowStats stats;
@@ -87,9 +85,7 @@ struct FlowEntry {
     }
 };
 
-//=============================================================================
 // FLOW TABLE - Hash table for storing flows
-//=============================================================================
 class FlowTable {
 public:
     static constexpr size_t DEFAULT_TABLE_SIZE = 65536;
@@ -104,11 +100,9 @@ public:
         flows_.reserve(table_size);
     }
     
-    //=========================================================================
     // LOOKUP OR CREATE - Find existing flow or create new one
-    //=========================================================================
     FlowEntry* LookupOrCreate(const FlowKey& key, uint64_t timestamp_us, bool* created = nullptr) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::shared_mutex> lock(mutex_);  // Exclusive lock for write
         total_lookups_++;
         
         auto it = flows_.find(key);
@@ -136,22 +130,18 @@ public:
         return &result.first->second;
     }
     
-    //=========================================================================
     // LOOKUP - Find existing flow (no creation)
-    //=========================================================================
     FlowEntry* Lookup(const FlowKey& key) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::shared_lock<std::shared_mutex> lock(mutex_);  // Shared lock for read
         total_lookups_++;
         
         auto it = flows_.find(key);
         return (it != flows_.end()) ? &it->second : nullptr;
     }
     
-    //=========================================================================
     // CLEANUP EXPIRED - Remove flows older than timeout
-    //=========================================================================
     size_t CleanupExpired(uint64_t current_time_us, uint64_t timeout_us) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::shared_mutex> lock(mutex_);  // Exclusive lock for write
         size_t removed = 0;
         
         for (auto it = flows_.begin(); it != flows_.end(); ) {
@@ -167,28 +157,21 @@ public:
         return removed;
     }
     
-    //=========================================================================
     // CLEAR - Remove all flows
-    //=========================================================================
     void Clear() {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::unique_lock<std::shared_mutex> lock(mutex_);  // Exclusive lock for write
         flows_.clear();
         flow_count_ = 0;
     }
     
-    //=========================================================================
-    // GETTERS
-    //=========================================================================
+
     size_t GetFlowCount() const { return flow_count_; }
     size_t GetMaxFlows() const { return max_flows_; }
     uint64_t GetTotalLookups() const { return total_lookups_; }
     uint64_t GetTotalInsertions() const { return total_insertions_; }
     
-    //=========================================================================
-    // GET ALL FLOWS - For statistics export
-    //=========================================================================
     std::vector<FlowEntry> GetAllFlows() const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::shared_lock<std::shared_mutex> lock(mutex_);  // Shared lock for read
         std::vector<FlowEntry> result;
         result.reserve(flows_.size());
         
@@ -199,9 +182,88 @@ public:
         return result;
     }
     
-    //=========================================================================
+    template<typename Comparator>
+    std::vector<FlowEntry> GetTopFlows(size_t topN, Comparator comp) const {
+        std::shared_lock<std::shared_mutex> lock(mutex_);  // Shared lock for read
+        
+        if (flows_.empty()) {
+            return {};
+        }
+        
+        // Collect pointers to avoid copying all flows
+        std::vector<const FlowEntry*> flowPtrs;
+        flowPtrs.reserve(flows_.size());
+        for (const auto& pair : flows_) {
+            flowPtrs.push_back(&pair.second);
+        }
+        
+        // Partial sort to get top N
+        size_t n = (std::min)(topN, flowPtrs.size());
+        std::partial_sort(flowPtrs.begin(), flowPtrs.begin() + n, flowPtrs.end(),
+            [&comp](const FlowEntry* a, const FlowEntry* b) {
+                return comp(*a, *b);
+            });
+        
+        // Copy only top N flows
+        std::vector<FlowEntry> result;
+        result.reserve(n);
+        for (size_t i = 0; i < n; i++) {
+            result.push_back(*flowPtrs[i]);
+        }
+        
+        return result;
+    }
+    
+    // Convenience method: Get top flows by total packets
+    std::vector<FlowEntry> GetTopFlowsByPackets(size_t topN) const {
+        return GetTopFlows(topN, [](const FlowEntry& a, const FlowEntry& b) {
+            return a.stats.TotalPackets() > b.stats.TotalPackets();
+        });
+    }
+    
+    // Convenience method: Get top flows by total bytes
+    std::vector<FlowEntry> GetTopFlowsByBytes(size_t topN) const {
+        return GetTopFlows(topN, [](const FlowEntry& a, const FlowEntry& b) {
+            return a.stats.TotalBytes() > b.stats.TotalBytes();
+        });
+    }
+    
+    // Convenience method: Get top flows by last activity
+    std::vector<FlowEntry> GetTopFlowsByActivity(size_t topN) const {
+        return GetTopFlows(topN, [](const FlowEntry& a, const FlowEntry& b) {
+            return a.stats.last_seen_us > b.stats.last_seen_us;
+        });
+    }
+    
+    // AGGREGATE STATS - Compute aggregate stats without copying flows
+    struct AggregatedFlowStats {
+        uint64_t total_packets = 0;
+        uint64_t total_bytes = 0;
+        std::unordered_map<int, uint64_t> protocol_counts;  // AppProtocol -> packet count
+        std::unordered_map<int, uint64_t> protocol_bytes;   // AppProtocol -> byte count
+    };
+    
+    AggregatedFlowStats GetAggregatedStats() const {
+        std::shared_lock<std::shared_mutex> lock(mutex_);  // Shared lock for read
+        
+        AggregatedFlowStats stats;
+        for (const auto& pair : flows_) {
+            const FlowEntry& flow = pair.second;
+            uint64_t packets = flow.stats.TotalPackets();
+            uint64_t bytes = flow.stats.TotalBytes();
+            
+            stats.total_packets += packets;
+            stats.total_bytes += bytes;
+            
+            int proto = static_cast<int>(flow.stats.app_protocol);
+            stats.protocol_counts[proto] += packets;
+            stats.protocol_bytes[proto] += bytes;
+        }
+        
+        return stats;
+    }
+    
     // PRINT STATS - Debug output
-    //=========================================================================
     void PrintStats() const {
         std::cout << "  Active flows: " << flow_count_ << std::endl;
         std::cout << "  Max flows: " << max_flows_ << std::endl;
@@ -211,7 +273,7 @@ public:
 
 private:
     std::unordered_map<FlowKey, FlowEntry, FlowKeyHash> flows_;
-    mutable std::mutex mutex_;
+    mutable std::shared_mutex mutex_;  // Shared mutex for concurrent reads
     size_t max_flows_;
     std::atomic<size_t> flow_count_;
     std::atomic<uint64_t> total_lookups_;

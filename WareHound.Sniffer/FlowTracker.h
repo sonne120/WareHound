@@ -31,6 +31,17 @@ public:
         size_t max_payload_size = 65536;
     };
     
+    // Pre-computed aggregate statistics (updated atomically during packet processing)
+    struct AggregateStats {
+        std::atomic<uint64_t> total_tcp_packets{0};
+        std::atomic<uint64_t> total_udp_packets{0};
+        std::atomic<uint64_t> total_tcp_bytes{0};
+        std::atomic<uint64_t> total_udp_bytes{0};
+        std::atomic<uint32_t> unique_protocols{0};
+        std::atomic<uint64_t> established_flows{0};
+        std::atomic<uint64_t> closed_flows{0};
+    };
+    
     explicit FlowTracker(const Config& config = Config())
         : config_(config)
         , flow_table_(config.table_size, config.max_flows)
@@ -38,6 +49,7 @@ public:
         , packets_processed_(0)
         , bytes_processed_(0)
         , start_time_us_(0)
+        , aggregate_stats_()
     {
     }
     
@@ -85,9 +97,27 @@ public:
         // 7. Update statistics
         UpdateFlowStats(flow, parsed, to_server);
         
+        // 7a. Update aggregate stats atomically (no lock needed)
+        if (parsed.ip_protocol == IPPROTO_TCP) {
+            aggregate_stats_.total_tcp_packets.fetch_add(1, std::memory_order_relaxed);
+            aggregate_stats_.total_tcp_bytes.fetch_add(len, std::memory_order_relaxed);
+        } else if (parsed.ip_protocol == IPPROTO_UDP) {
+            aggregate_stats_.total_udp_packets.fetch_add(1, std::memory_order_relaxed);
+            aggregate_stats_.total_udp_bytes.fetch_add(len, std::memory_order_relaxed);
+        }
+        
         // 8. Update TCP state machine (if TCP)
         if (parsed.ip_protocol == IPPROTO_TCP) {
+            TcpState prev_state = flow->stats.tcp_state;
             UpdateTcpState(flow, parsed, to_server);
+            TcpState new_state = flow->stats.tcp_state;
+            
+            // Track state transitions for aggregate stats
+            if (prev_state != TcpState::ESTABLISHED && new_state == TcpState::ESTABLISHED) {
+                aggregate_stats_.established_flows.fetch_add(1, std::memory_order_relaxed);
+            } else if (prev_state != TcpState::CLOSED && new_state == TcpState::CLOSED) {
+                aggregate_stats_.closed_flows.fetch_add(1, std::memory_order_relaxed);
+            }
         }
         
         // 9. Detect application protocol (if not yet detected)
@@ -98,9 +128,14 @@ public:
                 flow->stats.app_protocol = proto;
                 flow->stats.app_confidence = confidence;
                 
-                // Update protocol statistics
-                std::lock_guard<std::mutex> lock(stats_mutex_);
-                protocol_counts_[static_cast<int>(proto)]++;
+                // Update protocol statistics atomically
+                {
+                    std::lock_guard<std::mutex> lock(stats_mutex_);
+                    if (protocol_counts_.find(static_cast<int>(proto)) == protocol_counts_.end()) {
+                        aggregate_stats_.unique_protocols.fetch_add(1, std::memory_order_relaxed);
+                    }
+                    protocol_counts_[static_cast<int>(proto)]++;
+                }
             }
         }
         
@@ -138,6 +173,17 @@ public:
     uint64_t GetPacketsProcessed() const { return packets_processed_; }
     uint64_t GetBytesProcessed() const { return bytes_processed_; }
     
+    // Get pre-computed aggregate stats (lock-free, atomic reads)
+    const AggregateStats& GetAggregateStats() const { return aggregate_stats_; }
+    
+    uint64_t GetTcpPackets() const { return aggregate_stats_.total_tcp_packets.load(std::memory_order_relaxed); }
+    uint64_t GetUdpPackets() const { return aggregate_stats_.total_udp_packets.load(std::memory_order_relaxed); }
+    uint64_t GetTcpBytes() const { return aggregate_stats_.total_tcp_bytes.load(std::memory_order_relaxed); }
+    uint64_t GetUdpBytes() const { return aggregate_stats_.total_udp_bytes.load(std::memory_order_relaxed); }
+    uint32_t GetUniqueProtocolCount() const { return aggregate_stats_.unique_protocols.load(std::memory_order_relaxed); }
+    uint64_t GetEstablishedFlows() const { return aggregate_stats_.established_flows.load(std::memory_order_relaxed); }
+    uint64_t GetClosedFlows() const { return aggregate_stats_.closed_flows.load(std::memory_order_relaxed); }
+    
     // GET PROTOCOL COUNTS - For statistics
     void GetProtocolCounts(int* counts, int max_count) const {
         std::lock_guard<std::mutex> lock(stats_mutex_);
@@ -170,6 +216,15 @@ public:
         bytes_processed_ = 0;
         start_time_us_ = 0;
         
+        // Reset aggregate stats
+        aggregate_stats_.total_tcp_packets.store(0, std::memory_order_relaxed);
+        aggregate_stats_.total_udp_packets.store(0, std::memory_order_relaxed);
+        aggregate_stats_.total_tcp_bytes.store(0, std::memory_order_relaxed);
+        aggregate_stats_.total_udp_bytes.store(0, std::memory_order_relaxed);
+        aggregate_stats_.unique_protocols.store(0, std::memory_order_relaxed);
+        aggregate_stats_.established_flows.store(0, std::memory_order_relaxed);
+        aggregate_stats_.closed_flows.store(0, std::memory_order_relaxed);
+        
         std::lock_guard<std::mutex> lock(stats_mutex_);
         protocol_counts_.clear();
     }
@@ -192,6 +247,9 @@ private:
     
     mutable std::mutex stats_mutex_;
     std::unordered_map<int, uint64_t> protocol_counts_;
+    
+    // Pre-computed aggregate statistics (lock-free)
+    AggregateStats aggregate_stats_;
     
 
     // UPDATE FLOW STATS - Update counters

@@ -2,9 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace WareHound.UI.IPC;
 
-
-// native statistic structure
-
 [StructLayout(LayoutKind.Sequential, Pack = 1, CharSet = CharSet.Ansi)]
 public struct NativeProtocolStats
 {

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <mutex>
+#include <shared_mutex>
 #include <cstring>
 #include <ws2tcpip.h>
 
@@ -12,14 +13,31 @@ using namespace WareHound;
 
 // GLOBAL FLOW TRACKER INSTANCE
 static std::unique_ptr<FlowTracker> g_flowTracker;
-static std::mutex g_flowTrackerMutex;
+static std::shared_mutex g_flowTrackerMutex;  // Shared mutex for concurrent reads
 static bool g_nativeStatsEnabled = false;
 
 // IP address counters
 static std::unordered_map<uint32_t, uint64_t> g_sourceIPCounts;
 static std::unordered_map<uint32_t, uint64_t> g_destIPCounts;
 static std::unordered_map<uint16_t, uint64_t> g_portCounts;
-static std::mutex g_ipStatsMutex;
+static std::shared_mutex g_ipStatsMutex;  // Shared mutex for concurrent reads
+
+// CACHED STATISTICS - Avoid re-sorting on every poll
+struct CachedTopStats {
+    std::vector<std::pair<uint32_t, uint64_t>> topSourceIPs;
+    std::vector<std::pair<uint32_t, uint64_t>> topDestIPs;
+    std::vector<std::pair<uint16_t, uint64_t>> topPorts;
+    uint64_t lastUpdateCount = 0;  // Packet count when last updated
+    bool dirty = true;  // Invalidated when data changes
+    static constexpr uint64_t UPDATE_THRESHOLD = 100;  // Re-cache every N packets
+    
+    void Invalidate() { dirty = true; }
+    bool NeedsUpdate(uint64_t currentCount) const {
+        return dirty || (currentCount - lastUpdateCount) >= UPDATE_THRESHOLD;
+    }
+};
+static CachedTopStats g_cachedStats;
+static std::mutex g_cacheMutex;
 
 // HELPER FUNCTIONS
 static void IP4ToString(uint32_t ip, char* buffer, size_t bufferSize) {
@@ -58,10 +76,57 @@ static const char* GetServiceName(uint16_t port) {
     }
 }
 
+// CACHE UPDATE HELPER - Rebuilds cached top stats if needed
+static void UpdateCacheIfNeeded(size_t maxSourceIPs, size_t maxDestIPs, size_t maxPorts) {
+    uint64_t currentCount = g_flowTracker ? g_flowTracker->GetPacketsProcessed() : 0;
+    
+    std::lock_guard<std::mutex> cacheLock(g_cacheMutex);
+    
+    if (!g_cachedStats.NeedsUpdate(currentCount)) {
+        return;  // Cache is still valid
+    }
+    
+    // Rebuild cache from current data (already holding shared lock on g_ipStatsMutex from caller)
+    // Note: This is called while holding a shared lock, so we only read
+    
+    // Top source IPs
+    g_cachedStats.topSourceIPs.assign(g_sourceIPCounts.begin(), g_sourceIPCounts.end());
+    size_t nSrc = (std::min)(maxSourceIPs, g_cachedStats.topSourceIPs.size());
+    if (nSrc > 0) {
+        std::partial_sort(g_cachedStats.topSourceIPs.begin(), 
+                          g_cachedStats.topSourceIPs.begin() + nSrc, 
+                          g_cachedStats.topSourceIPs.end(),
+                          [](const auto& a, const auto& b) { return a.second > b.second; });
+    }
+    
+    // Top dest IPs
+    g_cachedStats.topDestIPs.assign(g_destIPCounts.begin(), g_destIPCounts.end());
+    size_t nDst = (std::min)(maxDestIPs, g_cachedStats.topDestIPs.size());
+    if (nDst > 0) {
+        std::partial_sort(g_cachedStats.topDestIPs.begin(), 
+                          g_cachedStats.topDestIPs.begin() + nDst, 
+                          g_cachedStats.topDestIPs.end(),
+                          [](const auto& a, const auto& b) { return a.second > b.second; });
+    }
+    
+    // Top ports
+    g_cachedStats.topPorts.assign(g_portCounts.begin(), g_portCounts.end());
+    size_t nPorts = (std::min)(maxPorts, g_cachedStats.topPorts.size());
+    if (nPorts > 0) {
+        std::partial_sort(g_cachedStats.topPorts.begin(), 
+                          g_cachedStats.topPorts.begin() + nPorts, 
+                          g_cachedStats.topPorts.end(),
+                          [](const auto& a, const auto& b) { return a.second > b.second; });
+    }
+    
+    g_cachedStats.lastUpdateCount = currentCount;
+    g_cachedStats.dirty = false;
+}
+
 // INITIALIZATION
 
 void InitFlowTracker() {
-    std::lock_guard<std::mutex> lock(g_flowTrackerMutex);
+    std::unique_lock<std::shared_mutex> lock(g_flowTrackerMutex);  // Exclusive lock for write
     if (!g_flowTracker) {
         FlowTracker::Config config;
         config.table_size = 65536;
@@ -76,16 +141,19 @@ void ProcessPacketForStats(const uint8_t* data, uint32_t len, uint64_t timestamp
     
     InitFlowTracker();
     
-    std::lock_guard<std::mutex> lock(g_flowTrackerMutex);
+    std::unique_lock<std::shared_mutex> lock(g_flowTrackerMutex);  // Exclusive lock for write
     FlowEntry* flow = g_flowTracker->ProcessPacket(data, len, timestamp_us);
     
     if (flow) {
         // Update IP/port statistics
-        std::lock_guard<std::mutex> ipLock(g_ipStatsMutex);
+        std::unique_lock<std::shared_mutex> ipLock(g_ipStatsMutex);  // Exclusive lock for write
         g_sourceIPCounts[flow->key.src_ip]++;
         g_destIPCounts[flow->key.dst_ip]++;
         if (flow->key.src_port > 0) g_portCounts[flow->key.src_port]++;
         if (flow->key.dst_port > 0) g_portCounts[flow->key.dst_port]++;
+        
+        // Mark cache as dirty (but don't invalidate immediately for performance)
+        // Cache will be rebuilt on next query after threshold is reached
     }
 }
 
@@ -110,7 +178,7 @@ SNIFFER_API bool Sniffer_GetCaptureStatistics(void* sniffer, NativeCaptureStatis
         return false;
     }
     
-    std::lock_guard<std::mutex> lock(g_flowTrackerMutex);
+    std::shared_lock<std::shared_mutex> lock(g_flowTrackerMutex);  // Shared lock for read
     
     stats->totalPackets = g_flowTracker->GetPacketsProcessed();
     stats->totalBytes = g_flowTracker->GetBytesProcessed();
@@ -125,17 +193,10 @@ SNIFFER_API bool Sniffer_GetCaptureStatistics(void* sniffer, NativeCaptureStatis
         stats->bytesPerSecond = 0;
     }
     
-    // Count unique protocols from flow table
-    auto flows = g_flowTracker->GetFlowTable().GetAllFlows();
-    std::unordered_map<int, bool> uniqueProtos;
-    for (const auto& flow : flows) {
-        if (flow.stats.app_protocol != AppProtocol::UNKNOWN) {
-            uniqueProtos[static_cast<int>(flow.stats.app_protocol)] = true;
-        }
-    }
-    stats->uniqueProtocols = static_cast<int>(uniqueProtos.size());
+    // Use pre-computed unique protocol count instead of iterating all flows
+    stats->uniqueProtocols = static_cast<int>(g_flowTracker->GetUniqueProtocolCount());
     
-    std::lock_guard<std::mutex> ipLock(g_ipStatsMutex);
+    std::shared_lock<std::shared_mutex> ipLock(g_ipStatsMutex);  // Shared lock for read
     stats->uniqueSourceIPs = static_cast<int>(g_sourceIPCounts.size());
     stats->uniqueDestIPs = static_cast<int>(g_destIPCounts.size());
     
@@ -145,32 +206,28 @@ SNIFFER_API bool Sniffer_GetCaptureStatistics(void* sniffer, NativeCaptureStatis
 SNIFFER_API int Sniffer_GetProtocolStats(void* sniffer, NativeProtocolStats* stats, int maxCount) {
     if (!stats || !g_flowTracker || maxCount <= 0) return 0;
     
-    std::lock_guard<std::mutex> lock(g_flowTrackerMutex);
+    std::shared_lock<std::shared_mutex> lock(g_flowTrackerMutex);  // Shared lock for read
     
-    // Aggregate protocol statistics from flows
-    std::unordered_map<AppProtocol, std::pair<uint64_t, uint64_t>> protoCounts;  // protocol -> (packets, bytes)
-    uint64_t totalPackets = 0;
+    // Use GetAggregatedStats() to avoid full flow copy
+    auto aggStats = g_flowTracker->GetFlowTable().GetAggregatedStats();
+    uint64_t totalPackets = aggStats.total_packets;
     
-    auto flows = g_flowTracker->GetFlowTable().GetAllFlows();
-    for (const auto& flow : flows) {
-        AppProtocol proto = flow.stats.app_protocol;
-        uint64_t packets = flow.stats.TotalPackets();
-        uint64_t bytes = flow.stats.TotalBytes();
-        
-        protoCounts[proto].first += packets;
-        protoCounts[proto].second += bytes;
-        totalPackets += packets;
+    // Convert to vector for sorting
+    std::vector<std::pair<int, std::pair<uint64_t, uint64_t>>> sorted;
+    sorted.reserve(aggStats.protocol_counts.size());
+    for (const auto& p : aggStats.protocol_counts) {
+        uint64_t bytes = aggStats.protocol_bytes.count(p.first) ? aggStats.protocol_bytes.at(p.first) : 0;
+        sorted.emplace_back(p.first, std::make_pair(p.second, bytes));
     }
     
-    // Sort by packet count descending
-    std::vector<std::pair<AppProtocol, std::pair<uint64_t, uint64_t>>> sorted(
-        protoCounts.begin(), protoCounts.end());
-    std::sort(sorted.begin(), sorted.end(),
+    // Partial sort to get top N only
+    size_t n = (std::min)(static_cast<size_t>(maxCount), sorted.size());
+    std::partial_sort(sorted.begin(), sorted.begin() + n, sorted.end(),
         [](const auto& a, const auto& b) { return a.second.first > b.second.first; });
     
-    int count = (std::min)(maxCount, static_cast<int>(sorted.size()));
+    int count = static_cast<int>(n);
     for (int i = 0; i < count; i++) {
-        strncpy(stats[i].protocolName, ProtocolDetector::GetProtocolName(sorted[i].first), 31);
+        strncpy(stats[i].protocolName, ProtocolDetector::GetProtocolName(static_cast<AppProtocol>(sorted[i].first)), 31);
         stats[i].protocolName[31] = '\0';
         stats[i].packetCount = sorted[i].second.first;
         stats[i].byteCount = sorted[i].second.second;
@@ -185,18 +242,18 @@ SNIFFER_API int Sniffer_GetProtocolStats(void* sniffer, NativeProtocolStats* sta
 SNIFFER_API int Sniffer_GetTopSourceIPs(void* sniffer, NativeTalkerStats* stats, int maxCount) {
     if (!stats || maxCount <= 0) return 0;
     
-    std::lock_guard<std::mutex> lock(g_ipStatsMutex);
+    std::shared_lock<std::shared_mutex> lock(g_ipStatsMutex);  // Shared lock for read
     
-    // Sort by count descending
-    std::vector<std::pair<uint32_t, uint64_t>> sorted(
-        g_sourceIPCounts.begin(), g_sourceIPCounts.end());
-    std::sort(sorted.begin(), sorted.end(),
-        [](const auto& a, const auto& b) { return a.second > b.second; });
+    // Update cache if needed (uses cached sorted results to avoid re-sorting)
+    UpdateCacheIfNeeded(static_cast<size_t>(maxCount), 10, 10);
     
-    int count = (std::min)(maxCount, static_cast<int>(sorted.size()));
+    std::lock_guard<std::mutex> cacheLock(g_cacheMutex);
+    size_t n = (std::min)(static_cast<size_t>(maxCount), g_cachedStats.topSourceIPs.size());
+    
+    int count = static_cast<int>(n);
     for (int i = 0; i < count; i++) {
-        IP4ToString(sorted[i].first, stats[i].ipAddress, 64);
-        stats[i].packetCount = sorted[i].second;
+        IP4ToString(g_cachedStats.topSourceIPs[i].first, stats[i].ipAddress, 64);
+        stats[i].packetCount = g_cachedStats.topSourceIPs[i].second;
         stats[i].byteCount = 0;  // Not tracked per-IP currently
     }
     
@@ -206,17 +263,18 @@ SNIFFER_API int Sniffer_GetTopSourceIPs(void* sniffer, NativeTalkerStats* stats,
 SNIFFER_API int Sniffer_GetTopDestIPs(void* sniffer, NativeTalkerStats* stats, int maxCount) {
     if (!stats || maxCount <= 0) return 0;
     
-    std::lock_guard<std::mutex> lock(g_ipStatsMutex);
+    std::shared_lock<std::shared_mutex> lock(g_ipStatsMutex);  // Shared lock for read
     
-    std::vector<std::pair<uint32_t, uint64_t>> sorted(
-        g_destIPCounts.begin(), g_destIPCounts.end());
-    std::sort(sorted.begin(), sorted.end(),
-        [](const auto& a, const auto& b) { return a.second > b.second; });
+    // Update cache if needed
+    UpdateCacheIfNeeded(10, static_cast<size_t>(maxCount), 10);
     
-    int count = (std::min)(maxCount, static_cast<int>(sorted.size()));
+    std::lock_guard<std::mutex> cacheLock(g_cacheMutex);
+    size_t n = (std::min)(static_cast<size_t>(maxCount), g_cachedStats.topDestIPs.size());
+    
+    int count = static_cast<int>(n);
     for (int i = 0; i < count; i++) {
-        IP4ToString(sorted[i].first, stats[i].ipAddress, 64);
-        stats[i].packetCount = sorted[i].second;
+        IP4ToString(g_cachedStats.topDestIPs[i].first, stats[i].ipAddress, 64);
+        stats[i].packetCount = g_cachedStats.topDestIPs[i].second;
         stats[i].byteCount = 0;
     }
     
@@ -226,19 +284,20 @@ SNIFFER_API int Sniffer_GetTopDestIPs(void* sniffer, NativeTalkerStats* stats, i
 SNIFFER_API int Sniffer_GetTopPorts(void* sniffer, NativePortStats* stats, int maxCount) {
     if (!stats || maxCount <= 0) return 0;
     
-    std::lock_guard<std::mutex> lock(g_ipStatsMutex);
+    std::shared_lock<std::shared_mutex> lock(g_ipStatsMutex);  // Shared lock for read
     
-    std::vector<std::pair<uint16_t, uint64_t>> sorted(
-        g_portCounts.begin(), g_portCounts.end());
-    std::sort(sorted.begin(), sorted.end(),
-        [](const auto& a, const auto& b) { return a.second > b.second; });
+    // Update cache if needed
+    UpdateCacheIfNeeded(10, 10, static_cast<size_t>(maxCount));
     
-    int count = (std::min)(maxCount, static_cast<int>(sorted.size()));
+    std::lock_guard<std::mutex> cacheLock(g_cacheMutex);
+    size_t n = (std::min)(static_cast<size_t>(maxCount), g_cachedStats.topPorts.size());
+    
+    int count = static_cast<int>(n);
     for (int i = 0; i < count; i++) {
-        stats[i].port = sorted[i].first;
-        strncpy(stats[i].serviceName, GetServiceName(sorted[i].first), 31);
+        stats[i].port = g_cachedStats.topPorts[i].first;
+        strncpy(stats[i].serviceName, GetServiceName(g_cachedStats.topPorts[i].first), 31);
         stats[i].serviceName[31] = '\0';
-        stats[i].packetCount = sorted[i].second;
+        stats[i].packetCount = g_cachedStats.topPorts[i].second;
     }
     
     return count;
@@ -246,22 +305,29 @@ SNIFFER_API int Sniffer_GetTopPorts(void* sniffer, NativePortStats* stats, int m
 
 SNIFFER_API void Sniffer_ClearStatistics(void* sniffer) {
     {
-        std::lock_guard<std::mutex> lock(g_flowTrackerMutex);
+        std::unique_lock<std::shared_mutex> lock(g_flowTrackerMutex);  // Exclusive lock for write
         if (g_flowTracker) {
             g_flowTracker->Clear();
         }
     }
     
     {
-        std::lock_guard<std::mutex> lock(g_ipStatsMutex);
+        std::unique_lock<std::shared_mutex> lock(g_ipStatsMutex);  // Exclusive lock for write
         g_sourceIPCounts.clear();
         g_destIPCounts.clear();
         g_portCounts.clear();
+        
+        // Invalidate cache
+        std::lock_guard<std::mutex> cacheLock(g_cacheMutex);
+        g_cachedStats.Invalidate();
+        g_cachedStats.topSourceIPs.clear();
+        g_cachedStats.topDestIPs.clear();
+        g_cachedStats.topPorts.clear();
     }
 }
 
 SNIFFER_API uint64_t Sniffer_GetFlowCount(void* sniffer) {
-    std::lock_guard<std::mutex> lock(g_flowTrackerMutex);
+    std::shared_lock<std::shared_mutex> lock(g_flowTrackerMutex);  // Shared lock for read
     return g_flowTracker ? g_flowTracker->GetFlowCount() : 0;
 }
 
