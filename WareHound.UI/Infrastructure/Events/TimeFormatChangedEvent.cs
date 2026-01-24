@@ -8,6 +8,5 @@ namespace WareHound.UI.Infrastructure.Events
         Absolute,
         Delta
     }
-
     public class TimeFormatChangedEvent : PubSubEvent<TimeFormatType> { }
 }

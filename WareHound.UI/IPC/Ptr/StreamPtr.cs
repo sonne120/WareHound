@@ -22,20 +22,10 @@ namespace WareHound.UI.IPC.Ptr
         private static Thread? _workerThread;
         private static int _activeDevice = -1;
 
-        /// <summary>
-        /// Whether the stream has been initialized
-        /// </summary>
         public static bool IsLoaded => _isInitialized;
 
-        /// <summary>
-        /// Whether the capture thread is currently running
-        /// </summary>
         public static bool IsRunning => _workerThread is { IsAlive: true };
 
-        /// <summary>
-        /// Starts the capture stream on the specified device.
-        /// </summary>
-        /// <param name="deviceIndex">The device index to capture on</param>
         public static void StartStream(int deviceIndex)
         {
             lock (_sync)
@@ -73,11 +63,10 @@ namespace WareHound.UI.IPC.Ptr
         {
             lock (_sync)
             {
-                // Wait for the worker thread to finish if it's still running
                 if (_workerThread is { IsAlive: true })
                 {
                     _logger?.LogDebug("[StreamPtr] Waiting for worker thread to terminate...");
-                    _workerThread.Join(2000); // Wait up to 2 seconds
+                    _workerThread.Join(2000); 
                     
                     if (_workerThread.IsAlive)
                     {

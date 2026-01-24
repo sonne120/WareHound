@@ -97,7 +97,6 @@ public class NativeStatisticsInterop : INativeStatisticsInterop
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     private static extern ulong Sniffer_GetFlowCount(IntPtr sniffer);
 
-    //public methods
     public void EnableNativeStats(bool enable)
     {
         Sniffer_EnableNativeStats(_snifferHandle, enable);

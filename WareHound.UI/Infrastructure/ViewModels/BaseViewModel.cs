@@ -249,6 +249,7 @@ namespace WareHound.UI.Infrastructure.ViewModels
 
             if (disposing)
             {
+                OnDispose();
                 CancelOperations();
 
                 foreach (var token in _subscriptionTokens)
@@ -256,7 +257,6 @@ namespace WareHound.UI.Infrastructure.ViewModels
                     token?.Dispose();
                 }
                 _subscriptionTokens.Clear();
-                OnDispose();
             }
 
             _disposed = true;

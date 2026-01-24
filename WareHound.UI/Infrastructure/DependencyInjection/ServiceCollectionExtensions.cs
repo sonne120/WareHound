@@ -11,30 +11,30 @@ namespace WareHound.UI.Infrastructure.DependencyInjection
     {
         public static void AddApplicationServices(this IContainerRegistry containerRegistry)
         {
-            // Register Infrastructure services
+            //  Infrastructure services
             containerRegistry.RegisterSingleton<ILoggerService, DebugLoggerService>();
 
-            // Register IPC/Interop services
+            //  IPC/Interop services
             containerRegistry.RegisterSingleton<ISnifferInterop, SnifferInterop>();
 
-            // Register Application Services
+            //  Application Services
             containerRegistry.RegisterSingleton<ISnifferService, SnifferService>();
             containerRegistry.RegisterSingleton<IPacketCollectionService, PacketCollectionService>();
             
-            // Register PCAP file services (both backends available)
+            //  PCAP file services (both backends available)
             containerRegistry.Register<NativePcapFileService>();
             containerRegistry.Register<SharpPcapFileService>();
             
-            // Register factory for selecting PCAP backend based on settings
+            //  factory for selecting PCAP backend based on settings
             containerRegistry.RegisterSingleton<PcapFileServiceFactory>();
 
-            // Register Views
+            //  Views
             containerRegistry.Register<MainWindow>();
         }
 
         public static void AddViewModels(this IContainerRegistry containerRegistry)
         {
-            // Register ViewModels for navigation
+            //  ViewModels for navigation
             containerRegistry.RegisterForNavigation<CaptureView, CaptureViewModel>();
             containerRegistry.RegisterForNavigation<DashboardView, DashboardViewModel>();
             containerRegistry.RegisterForNavigation<StatisticsView, StatisticsViewModel>();

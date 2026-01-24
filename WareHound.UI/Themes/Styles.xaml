@@ -39,9 +39,8 @@
         </Setter>
     </Style>
 
-    <!-- ============================================== -->
-    <!-- MODERN TEXTBOX STYLE                           -->
-    <!-- ============================================== -->
+    <!-- textbox style-->
+    
     <Style x:Key="ModernTextBoxStyle" TargetType="TextBox">
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Padding" Value="12,10"/>
@@ -74,9 +73,8 @@
         </Setter>
     </Style>
 
-    <!-- ============================================== -->
-    <!-- MODERN COMBOBOX STYLE                          -->
-    <!-- ============================================== -->
+  
+    <!-- combobox style-->
     <Style x:Key="ModernComboBoxStyle" TargetType="ComboBox">
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
