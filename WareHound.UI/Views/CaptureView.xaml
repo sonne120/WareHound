@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:prism="http://prismlibrary.com/"
              xmlns:scottplot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
-             xmlns:controls="clr-namespace:WareHound.UI.Controls"
+             xmlns:views="clr-namespace:WareHound.UI.Views"
              prism:ViewModelLocator.AutoWireViewModel="True"
              Background="{StaticResource PrimaryBrush}">
 
@@ -196,7 +196,7 @@
         </Grid>
         
         <!-- Statistics Status Bar at Bottom -->
-        <controls:StatisticsStatusBar Grid.Row="1" 
+        <views:StatisticsStatusBar Grid.Row="1" 
                                        x:Name="StatisticsBar"
                                        DataContext="{Binding StatisticsStatusBarViewModel}"/>
     </Grid>

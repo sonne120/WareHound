@@ -13,7 +13,6 @@ using WareHound.UI.Infrastructure.Filters;
 using WareHound.UI.Models;
 using WareHound.UI.Services;
 using WareHound.UI.Infrastructure.Services;
-using WareHound.UI.Controls;
 
 namespace WareHound.UI.ViewModels
 {
@@ -28,10 +27,8 @@ namespace WareHound.UI.ViewModels
         private IPacketFilter _currentFilter = new NoOpFilter();
         private CancellationTokenSource? _chartsCts;
         
-        // ScottPlot data (60 points = 60 seconds)
         private readonly double[] _packetsData = new double[60];
         
-        // Event for chart updates
         public event EventHandler<double[]>? ChartUpdateRequested;
 
         private NetworkDevice? _selectedDevice;
@@ -57,7 +54,7 @@ namespace WareHound.UI.ViewModels
         private double _averagePps;
         private double _maxPps;
         
-        // Local stats tracking (independent of StatisticsViewModel)
+        // Local stats tracking 
         private System.Windows.Threading.DispatcherTimer? _localStatsTimer;
         private DateTime _captureStartTime = DateTime.Now;
         private long _lastPacketCount;
@@ -65,10 +62,8 @@ namespace WareHound.UI.ViewModels
         private double _localMaxPps;
         private long _totalBytes;
         
-        // Protocol bar data
         private ObservableCollection<ProtocolBarItem> _protocolBars = new();
         
-        // Top talkers data
         private ObservableCollection<TopTalkerDisplayItem> _topTalkers = new();
 
         public ObservableCollection<PacketInfo> Packets { get; } = new();
@@ -198,7 +193,6 @@ namespace WareHound.UI.ViewModels
             set => SetProperty(ref _protocolBars, value);
         }
         
-        // Top talkers list
         public ObservableCollection<TopTalkerDisplayItem> TopTalkers
         {
             get => _topTalkers;
@@ -207,7 +201,6 @@ namespace WareHound.UI.ViewModels
 
         public bool HasChartData => _packetsData.Any(v => v > 0) || ProtocolBars.Count > 0;
         
-        // Statistics Status Bar ViewModel for the bottom panel
         public StatisticsStatusBarViewModel StatisticsStatusBarViewModel { get; } = new StatisticsStatusBarViewModel();
 
         public CaptureViewModel(ISnifferService snifferService, IPacketCollectionService collectionService, IEventAggregator eventAggregator, ILoggerService logger, IStatisticsChannel statisticsChannel)
@@ -218,7 +211,6 @@ namespace WareHound.UI.ViewModels
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _statisticsChannel = statisticsChannel ?? throw new ArgumentNullException(nameof(statisticsChannel));
             
-            // Initialize chart data with zeros
             Array.Clear(_packetsData, 0, _packetsData.Length);
             
             _packetsView = CollectionViewSource.GetDefaultView(Packets);
@@ -398,7 +390,6 @@ namespace WareHound.UI.ViewModels
             _hasPackets = false;
             SaveToDashboardCommand.RaiseCanExecuteChanged();
             
-            // Reset the statistics status bar
             StatisticsStatusBarViewModel.Reset();
         }
 

@@ -7,7 +7,7 @@ using System.Windows.Media.Animation;
 using ScottPlot;
 using WareHound.UI.ViewModels;
 
-namespace WareHound.UI.Controls
+namespace WareHound.UI.Views
 {
     public partial class StatisticsStatusBar : UserControl
     {
@@ -43,7 +43,6 @@ namespace WareHound.UI.Controls
             }
         }
 
-        #region Chart Initialization
 
         private void InitializeChart()
         {
@@ -149,15 +148,11 @@ namespace WareHound.UI.Controls
             });
         }
 
-        #endregion
-
-        #region UI Events
 
         private void StatusBar_Click(object sender, MouseButtonEventArgs e)
         {
             _isExpanded = !_isExpanded;
             
-            // Animate icon
             var rotation = new DoubleAnimation
             {
                 To = _isExpanded ? 180 : 0,
@@ -166,12 +161,10 @@ namespace WareHound.UI.Controls
             };
             ExpandIconRotation.BeginAnimation(System.Windows.Media.RotateTransform.AngleProperty, rotation);
             
-            // Show/hide panel
             if (_isExpanded)
             {
                 ExpandedPanel.Visibility = Visibility.Visible;
                 
-                // Fade in animation
                 var fadeIn = new DoubleAnimation
                 {
                     From = 0,
@@ -182,7 +175,6 @@ namespace WareHound.UI.Controls
             }
             else
             {
-                // Fade out animation
                 var fadeOut = new DoubleAnimation
                 {
                     From = 1,
@@ -208,21 +200,11 @@ namespace WareHound.UI.Controls
             StatusBarBorder.Background = new SolidColorBrush((System.Windows.Media.Color)ColorConverter.ConvertFromString("#E8E8ED"));
         }
 
-        #endregion
-
-        #region Public Methods
-
-        /// <summary>
-        /// Programmatically expand/collapse the panel
-        /// </summary>
         public void ToggleExpanded()
         {
             StatusBar_Click(this, null!);
         }
 
-        /// <summary>
-        /// Set the panel state
-        /// </summary>
         public void SetExpanded(bool expanded)
         {
             if (_isExpanded != expanded)
@@ -230,7 +212,5 @@ namespace WareHound.UI.Controls
                 StatusBar_Click(this, null!);
             }
         }
-
-        #endregion
     }
 }
