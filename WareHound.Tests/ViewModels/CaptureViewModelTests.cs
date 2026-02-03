@@ -16,6 +16,7 @@ public class CaptureViewModelTests
     private readonly Mock<IPacketCollectionService> _mockCollectionService;
     private readonly Mock<IEventAggregator> _mockEventAggregator;
     private readonly Mock<ILoggerService> _mockLoggerService;
+    private readonly Mock<IStatisticsChannel> _mockStatisticsChannel;
     private readonly Mock<CaptureStateChangedEvent> _mockCaptureStateEvent;
     private readonly Mock<ClearPacketsEvent> _mockClearPacketsEvent;
     private readonly Mock<FilterChangedEvent> _mockFilterChangedEvent;
@@ -24,6 +25,8 @@ public class CaptureViewModelTests
     private readonly Mock<TimeFormatChangedEvent> _mockTimeFormatChangedEvent;
     private readonly Mock<PacketCapturedEvent> _mockPacketCapturedEvent;
     private readonly Mock<DevicesLoadedEvent> _mockDevicesLoadedEvent;
+    private readonly Mock<PcapLoadedEvent> _mockPcapLoadedEvent;
+    private readonly Mock<PcapSaveRequestEvent> _mockPcapSaveRequestEvent;
 
     public CaptureViewModelTests()
     {
@@ -31,6 +34,7 @@ public class CaptureViewModelTests
         _mockCollectionService = new Mock<IPacketCollectionService>();
         _mockEventAggregator = new Mock<IEventAggregator>();
         _mockLoggerService = new Mock<ILoggerService>();
+        _mockStatisticsChannel = new Mock<IStatisticsChannel>();
         _mockCaptureStateEvent = new Mock<CaptureStateChangedEvent>();
         _mockClearPacketsEvent = new Mock<ClearPacketsEvent>();
         _mockFilterChangedEvent = new Mock<FilterChangedEvent>();
@@ -39,6 +43,8 @@ public class CaptureViewModelTests
         _mockTimeFormatChangedEvent = new Mock<TimeFormatChangedEvent>();
         _mockPacketCapturedEvent = new Mock<PacketCapturedEvent>();
         _mockDevicesLoadedEvent = new Mock<DevicesLoadedEvent>();
+        _mockPcapLoadedEvent = new Mock<PcapLoadedEvent>();
+        _mockPcapSaveRequestEvent = new Mock<PcapSaveRequestEvent>();
 
         _mockSnifferService
             .Setup(s => s.Devices)
@@ -69,6 +75,12 @@ public class CaptureViewModelTests
         _mockEventAggregator
             .Setup(ea => ea.GetEvent<DevicesLoadedEvent>())
             .Returns(_mockDevicesLoadedEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<PcapLoadedEvent>())
+            .Returns(_mockPcapLoadedEvent.Object);
+        _mockEventAggregator
+            .Setup(ea => ea.GetEvent<PcapSaveRequestEvent>())
+            .Returns(_mockPcapSaveRequestEvent.Object);
     }
 
     [Fact]
@@ -79,7 +91,8 @@ public class CaptureViewModelTests
             null!, 
             _mockCollectionService.Object, 
             _mockEventAggregator.Object,
-            _mockLoggerService.Object);
+            _mockLoggerService.Object,
+            _mockStatisticsChannel.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -94,7 +107,8 @@ public class CaptureViewModelTests
             _mockSnifferService.Object, 
             null!, 
             _mockEventAggregator.Object,
-            _mockLoggerService.Object);
+            _mockLoggerService.Object,
+            _mockStatisticsChannel.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -109,7 +123,8 @@ public class CaptureViewModelTests
             _mockSnifferService.Object, 
             _mockCollectionService.Object, 
             null!,
-            _mockLoggerService.Object);
+            _mockLoggerService.Object,
+            _mockStatisticsChannel.Object);
 
         // Assert
         action.Should().Throw<ArgumentNullException>()
@@ -280,6 +295,7 @@ public class CaptureViewModelTests
             _mockSnifferService.Object,
             _mockCollectionService.Object,
             _mockEventAggregator.Object,
-            _mockLoggerService.Object);
+            _mockLoggerService.Object,
+            _mockStatisticsChannel.Object);
     }
 }

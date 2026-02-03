@@ -84,7 +84,7 @@ public class MainWindowTests : WpfUITestBase
 
         // Act
         settingsMenuItem?.Click();
-        Thread.Sleep(500); // Wait for navigation
+        Thread.Sleep(500); 
 
         // Assert
         MainWindow.Should().NotBeNull();

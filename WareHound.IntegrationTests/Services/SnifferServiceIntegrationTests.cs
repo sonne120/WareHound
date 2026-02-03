@@ -172,24 +172,44 @@ public class SnifferServiceIntegrationTests : IDisposable
     }
 }
 
-/// <summary>
-/// Test implementation of ISnifferService for integration testing
-/// </summary>
 public class TestSnifferService : ISnifferService
 {
     public ObservableCollection<NetworkDevice> Devices { get; } = new();
     public bool IsCapturing { get; private set; }
     public int SelectedDeviceIndex { get; private set; } = -1;
+    public bool IsLoadingDevices { get; private set; }
 
     public event Action<string>? ErrorOccurred;
+    public event Action? DevicesLoaded;
+    public event Action? DevicesLoadingStarted;
 
     private readonly List<PacketInfo> _simulatedPackets = new();
     private IntPtr _handle = new(1); // Simulated handle
 
     public void LoadDevices()
     {
-        // In real integration tests, this would call the native DLL
-        // For test purposes, devices are added via SimulateDevices
+    }
+
+    public async Task LoadDevicesAsync(CancellationToken cancellationToken = default)
+    {
+        IsLoadingDevices = true;
+        DevicesLoadingStarted?.Invoke();
+        try
+        {
+            await Task.Delay(10, cancellationToken); // Simulate async loading
+            LoadDevices();
+        }
+        finally
+        {
+            IsLoadingDevices = false;
+            DevicesLoaded?.Invoke();
+        }
+    }
+
+    public async Task LoadDevicesAsync(TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        await LoadDevicesAsync(cts.Token);
     }
 
     public void SimulateDevices(IEnumerable<NetworkDevice> devices)

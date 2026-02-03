@@ -28,18 +28,36 @@ public class ViewModelServiceIntegrationTests
         var mockCollectionService = new Mock<IPacketCollectionService>();
         var mockEventAggregator = new Mock<IEventAggregator>();
         var mockLoggerService = new Mock<ILoggerService>();
+        var mockStatisticsChannel = new Mock<IStatisticsChannel>();
+        
+        // Mock all events subscribed in CaptureViewModel constructor
         var mockCaptureStateEvent = new Mock<CaptureStateChangedEvent>();
+        var mockClearPacketsEvent = new Mock<ClearPacketsEvent>();
+        var mockFilterChangedEvent = new Mock<FilterChangedEvent>();
+        var mockAutoScrollChangedEvent = new Mock<AutoScrollChangedEvent>();
+        var mockShowMacAddressesChangedEvent = new Mock<ShowMacAddressesChangedEvent>();
+        var mockTimeFormatChangedEvent = new Mock<TimeFormatChangedEvent>();
+        var mockDevicesLoadedEvent = new Mock<DevicesLoadedEvent>();
+        var mockPcapLoadedEvent = new Mock<PcapLoadedEvent>();
+        var mockPcapSaveRequestEvent = new Mock<PcapSaveRequestEvent>();
 
-        mockEventAggregator
-            .Setup(ea => ea.GetEvent<CaptureStateChangedEvent>())
-            .Returns(mockCaptureStateEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<CaptureStateChangedEvent>()).Returns(mockCaptureStateEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<ClearPacketsEvent>()).Returns(mockClearPacketsEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<FilterChangedEvent>()).Returns(mockFilterChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<AutoScrollChangedEvent>()).Returns(mockAutoScrollChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<ShowMacAddressesChangedEvent>()).Returns(mockShowMacAddressesChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<TimeFormatChangedEvent>()).Returns(mockTimeFormatChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<DevicesLoadedEvent>()).Returns(mockDevicesLoadedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<PcapLoadedEvent>()).Returns(mockPcapLoadedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<PcapSaveRequestEvent>()).Returns(mockPcapSaveRequestEvent.Object);
 
         // Act
         var viewModel = new CaptureViewModel(
             mockSnifferService.Object,
             mockCollectionService.Object,
             mockEventAggregator.Object,
-            mockLoggerService.Object);
+            mockLoggerService.Object,
+            mockStatisticsChannel.Object);
 
         // Assert
         viewModel.Devices.Should().HaveCount(2);
@@ -58,17 +76,35 @@ public class ViewModelServiceIntegrationTests
         var mockCollectionService = new Mock<IPacketCollectionService>();
         var mockEventAggregator = new Mock<IEventAggregator>();
         var mockLoggerService = new Mock<ILoggerService>();
+        var mockStatisticsChannel = new Mock<IStatisticsChannel>();
+        
+        // Mock all events subscribed in CaptureViewModel constructor
         var mockCaptureStateEvent = new Mock<CaptureStateChangedEvent>();
+        var mockClearPacketsEvent = new Mock<ClearPacketsEvent>();
+        var mockFilterChangedEvent = new Mock<FilterChangedEvent>();
+        var mockAutoScrollChangedEvent = new Mock<AutoScrollChangedEvent>();
+        var mockShowMacAddressesChangedEvent = new Mock<ShowMacAddressesChangedEvent>();
+        var mockTimeFormatChangedEvent = new Mock<TimeFormatChangedEvent>();
+        var mockDevicesLoadedEvent = new Mock<DevicesLoadedEvent>();
+        var mockPcapLoadedEvent = new Mock<PcapLoadedEvent>();
+        var mockPcapSaveRequestEvent = new Mock<PcapSaveRequestEvent>();
 
-        mockEventAggregator
-            .Setup(ea => ea.GetEvent<CaptureStateChangedEvent>())
-            .Returns(mockCaptureStateEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<CaptureStateChangedEvent>()).Returns(mockCaptureStateEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<ClearPacketsEvent>()).Returns(mockClearPacketsEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<FilterChangedEvent>()).Returns(mockFilterChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<AutoScrollChangedEvent>()).Returns(mockAutoScrollChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<ShowMacAddressesChangedEvent>()).Returns(mockShowMacAddressesChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<TimeFormatChangedEvent>()).Returns(mockTimeFormatChangedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<DevicesLoadedEvent>()).Returns(mockDevicesLoadedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<PcapLoadedEvent>()).Returns(mockPcapLoadedEvent.Object);
+        mockEventAggregator.Setup(ea => ea.GetEvent<PcapSaveRequestEvent>()).Returns(mockPcapSaveRequestEvent.Object);
 
         var viewModel = new CaptureViewModel(
             mockSnifferService.Object,
             mockCollectionService.Object,
             mockEventAggregator.Object,
-            mockLoggerService.Object);
+            mockLoggerService.Object,
+            mockStatisticsChannel.Object);
 
         var packetsChangedCount = 0;
         viewModel.Packets.CollectionChanged += (_, _) => packetsChangedCount++;
