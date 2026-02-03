@@ -38,7 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\sniffering.proto" GrpcServices="Client" />
+    <Protobuf Include="$(MSBuildThisFileDirectory)Protos\sniffering.proto" GrpcServices="Client" ProtoRoot="$(MSBuildThisFileDirectory)" />
   </ItemGroup>
 
   <!-- C++ project must be built separately with MSBuild/Visual Studio -->
