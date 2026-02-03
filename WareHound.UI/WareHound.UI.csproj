@@ -77,19 +77,23 @@
 
   <Target Name="EnsureProtobufFiles" BeforeTargets="_Protobuf_CoreCompile">
     <PropertyGroup>
-       <IsTempProject>false</IsTempProject>
        <IsTempProject Condition="$(MSBuildProjectFile.Contains('wpftmp'))">true</IsTempProject>
-       
+    </PropertyGroup>
+    
+    <PropertyGroup Condition="'$(IsTempProject)' == 'true'">
+       <ProtoSourceRoot>$(MSBuildProjectDirectory)\..</ProtoSourceRoot>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(IsTempProject)' != 'true'">
        <ProtoSourceRoot>$(MSBuildProjectDirectory)</ProtoSourceRoot>
-       <ProtoSourceRoot Condition="'$(IsTempProject)' == 'true' AND '$(SolutionDir)' != ''">$(SolutionDir)WareHound.UI</ProtoSourceRoot>
-       <ProtoSourceRoot Condition="'$(IsTempProject)' == 'true' AND '$(SolutionDir)' == ''">$(MSBuildProjectDirectory)\..\..\..\..\..</ProtoSourceRoot>
     </PropertyGroup>
     
     <ItemGroup>
       <ProtoFilesToCopy Include="$(ProtoSourceRoot)\Protos\**\*.proto" />
     </ItemGroup>
     
-    <Copy SourceFiles="@(ProtoFilesToCopy)" DestinationFolder="$(MSBuildProjectDirectory)\Protos" SkipUnchangedFiles="true" />
+    <Message Text="[Fix] Copying proto files from '$(ProtoSourceRoot)\Protos' to '$(MSBuildProjectDirectory)\Protos'. IsTempProject=$(IsTempProject)" Importance="high" Condition="'$(IsTempProject)' == 'true'" />
+    
+    <Copy SourceFiles="@(ProtoFilesToCopy)" DestinationFolder="$(MSBuildProjectDirectory)\Protos" SkipUnchangedFiles="true" Condition="'$(IsTempProject)' == 'true'" />
   </Target>
 
 </Project>
