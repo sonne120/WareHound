@@ -75,25 +75,33 @@
     <Copy SourceFiles="$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll')" />
   </Target>
 
-  <Target Name="EnsureProtobufFiles" BeforeTargets="_Protobuf_CoreCompile">
+  <Target Name="EnsureProtobufFiles" BeforeTargets="_Protobuf_CoreCompile" Condition="$(MSBuildProjectFile.Contains('wpftmp'))">
     <PropertyGroup>
-       <IsTempProject Condition="$(MSBuildProjectFile.Contains('wpftmp'))">true</IsTempProject>
+       <DebugIsTempProject>$(MSBuildProjectFile.Contains('wpftmp'))</DebugIsTempProject>
+       <DebugPDir>$(MSBuildProjectDirectory)</DebugPDir>
+       <SDir>$(SolutionDir)</SDir>
+       <SDir Condition="'$(SDir)' == '' OR '$(SDir)' == '*Undefined*'">$(MSBuildProjectDirectory)\..\..\..\..\..\</SDir>
     </PropertyGroup>
-    
-    <PropertyGroup Condition="'$(IsTempProject)' == 'true'">
-       <ProtoSourceRoot>$(MSBuildProjectDirectory)\..</ProtoSourceRoot>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(IsTempProject)' != 'true'">
-       <ProtoSourceRoot>$(MSBuildProjectDirectory)</ProtoSourceRoot>
-    </PropertyGroup>
-    
+
+    <Message Text="[Fix] Debug Info: IsTemp=$(DebugIsTempProject), PDir=$(DebugPDir), SDir=$(SDir)" Importance="high" />
+
     <ItemGroup>
-      <ProtoFilesToCopy Include="$(ProtoSourceRoot)\Protos\**\*.proto" />
+      <!-- Strategy: Look for Protos in likely locations relative to the temp project in obj folder -->
+      <!-- 1. One level up (if temp proj is in WareHound.UI/) -->
+      <ProtoCandidates Include="$(MSBuildProjectDirectory)\..\Protos\**\*.proto" />
+      <!-- 2. Typical obj location: WareHound.UI/obj/ (so go up 1 level) -->
+      <ProtoCandidates Include="$(MSBuildProjectDirectory)\..\Protos\**\*.proto" />
+      <!-- 3. Deeper obj location (e.g. obj/x64/Release...) -->
+      <ProtoCandidates Include="$(MSBuildProjectDirectory)\..\..\Protos\**\*.proto" />
+      <ProtoCandidates Include="$(MSBuildProjectDirectory)\..\..\..\Protos\**\*.proto" />
+      <ProtoCandidates Include="$(MSBuildProjectDirectory)\..\..\..\..\Protos\**\*.proto" />
+      <!-- 4. Explicit solution path -->
+      <ProtoCandidates Include="$(SDir)WareHound.UI\Protos\**\*.proto" />
     </ItemGroup>
-    
-    <Message Text="[Fix] Copying proto files from '$(ProtoSourceRoot)\Protos' to '$(MSBuildProjectDirectory)\Protos'. IsTempProject=$(IsTempProject)" Importance="high" Condition="'$(IsTempProject)' == 'true'" />
-    
-    <Copy SourceFiles="@(ProtoFilesToCopy)" DestinationFolder="$(MSBuildProjectDirectory)\Protos" SkipUnchangedFiles="true" Condition="'$(IsTempProject)' == 'true'" />
+
+    <Message Text="[Fix] Found @(ProtoCandidates->Count()) candidate proto files." Importance="high" />
+
+    <Copy SourceFiles="@(ProtoCandidates)" DestinationFolder="$(MSBuildProjectDirectory)\Protos" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
