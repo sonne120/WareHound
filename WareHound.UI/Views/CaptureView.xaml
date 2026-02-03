@@ -195,7 +195,6 @@
         </Border>
         </Grid>
         
-        <!-- Statistics Status Bar at Bottom -->
         <views:StatisticsStatusBar Grid.Row="1" 
                                        x:Name="StatisticsBar"
                                        DataContext="{Binding StatisticsStatusBarViewModel}"/>
