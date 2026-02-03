@@ -42,7 +42,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <None Include="Protos\sniffering.proto" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Protos\sniffering.proto" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- C++ project must be built separately with MSBuild/Visual Studio -->
@@ -73,6 +73,23 @@
 
   <Target Name="CopyNativeDll" AfterTargets="Build">
     <Copy SourceFiles="$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll')" />
+  </Target>
+
+  <Target Name="EnsureProtobufFiles" BeforeTargets="_Protobuf_CoreCompile">
+    <PropertyGroup>
+       <IsTempProject>false</IsTempProject>
+       <IsTempProject Condition="$(MSBuildProjectFile.Contains('wpftmp'))">true</IsTempProject>
+       
+       <ProtoSourceRoot>$(MSBuildProjectDirectory)</ProtoSourceRoot>
+       <ProtoSourceRoot Condition="'$(IsTempProject)' == 'true' AND '$(SolutionDir)' != ''">$(SolutionDir)WareHound.UI</ProtoSourceRoot>
+       <ProtoSourceRoot Condition="'$(IsTempProject)' == 'true' AND '$(SolutionDir)' == ''">$(MSBuildProjectDirectory)\..\..\..\..\..</ProtoSourceRoot>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <ProtoFilesToCopy Include="$(ProtoSourceRoot)\Protos\**\*.proto" />
+    </ItemGroup>
+    
+    <Copy SourceFiles="@(ProtoFilesToCopy)" DestinationFolder="$(MSBuildProjectDirectory)\Protos" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
