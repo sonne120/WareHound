@@ -20,7 +20,7 @@ namespace WareHound.UI.Infrastructure.ViewModels
         private string _errorMessage = string.Empty;
 
         protected IEventAggregator? EventAggregator { get; }
-        protected ILoggerService _loggerService;
+        protected ILoggerService? _loggerService;
 
         protected bool IsDisposed => _disposed;
 
@@ -107,6 +107,30 @@ namespace WareHound.UI.Infrastructure.ViewModels
             _cts?.Dispose();
             _cts = null;
         }
+
+        #region Logging Helpers
+
+        protected void Log(string message)
+        {
+            _loggerService?.Log(message);
+        }
+
+        protected void LogDebug(string message)
+        {
+            _loggerService?.LogDebug(message);
+        }
+
+        protected void LogWarning(string message)
+        {
+            _loggerService?.LogWarning(message);
+        }
+
+        protected void LogError(string message, Exception? ex = null)
+        {
+            _loggerService?.LogError(message, ex);
+        }
+
+        #endregion
 
 
         protected static void RunOnUI(Action action)

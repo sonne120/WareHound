@@ -7,7 +7,6 @@
         public string Description { get; set; } = "";
 
         public string DisplayName => string.IsNullOrEmpty(Description) ? Name : Description;
-
         public override string ToString() => DisplayName;
     }
 }

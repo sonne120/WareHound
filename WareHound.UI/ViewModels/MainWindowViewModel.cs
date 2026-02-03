@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 using Prism.Commands;
 using Prism.Events;
@@ -15,9 +16,9 @@ namespace WareHound.UI.ViewModels
     public class MainWindowViewModel : BaseViewModel
     {
         private readonly IRegionManager _regionManager;
-        private readonly ISnifferService _snifferService;
-        private readonly PcapFileServiceFactory _pcapFactory;
+        private readonly ICaptureSessionFacade _captureSession;
         private readonly DispatcherTimer _statusTimer;
+        private ValueTask _initializeTask;
 
         private string _statusText = "Ready";
         private int _packetCount;
@@ -79,12 +80,12 @@ namespace WareHound.UI.ViewModels
             {
                 if (SetProperty(ref _selectedDevice, value) && value != null)
                 {
-                    _snifferService.SelectDevice(value.Index);
+                    _captureSession.SelectDevice(value.Index);
                 }
             }
         }
 
-        public ObservableCollection<NetworkDevice> Devices => _snifferService.Devices;
+        public ObservableCollection<NetworkDevice> Devices => _captureSession.Devices;
         public DelegateCommand<string> NavigateCommand { get; }
         public DelegateCommand StartCaptureCommand { get; }
         public DelegateCommand StopCaptureCommand { get; }
@@ -100,7 +101,6 @@ namespace WareHound.UI.ViewModels
             set => SetProperty(ref _isSavingOrLoading, value);
         }
 
-        // Filter type options for ComboBox
         public ObservableCollection<FilterTypeOption> FilterTypes { get; } = new()
         {
             new FilterTypeOption { Type = FilterType.All, DisplayName = "All Fields" },
@@ -161,13 +161,17 @@ namespace WareHound.UI.ViewModels
             Publish<FilterChangedEvent, FilterCriteria>(criteria);
         }
 
-        public MainWindowViewModel(IRegionManager regionManager, ISnifferService snifferService, 
-            PcapFileServiceFactory pcapFactory, IEventAggregator eventAggregator, ILoggerService logger)
+        public MainWindowViewModel(IRegionManager regionManager, ICaptureSessionFacade captureSession, 
+            IEventAggregator eventAggregator, ILoggerService logger)
             : base(eventAggregator, logger)
         {
             _regionManager = regionManager ?? throw new ArgumentNullException(nameof(regionManager));
-            _snifferService = snifferService ?? throw new ArgumentNullException(nameof(snifferService));
-            _pcapFactory = pcapFactory ?? throw new ArgumentNullException(nameof(pcapFactory));
+            _captureSession = captureSession ?? throw new ArgumentNullException(nameof(captureSession));
+
+            // Subscribe to facade events
+            _captureSession.CaptureStateChanged += OnFacadeCaptureStateChanged;
+            _captureSession.ErrorOccurred += OnFacadeError;
+            _captureSession.DevicesLoaded += OnFacadeDevicesLoaded;
 
             NavigateCommand = new DelegateCommand<string>(Navigate);
             StartCaptureCommand = new DelegateCommand(StartCapture, CanStartCapture)
@@ -188,7 +192,6 @@ namespace WareHound.UI.ViewModels
                 .ObservesProperty(() => IsCapturing)
                 .ObservesProperty(() => IsSavingOrLoading);
 
-            // Subscribe to packet events for counter display
             Subscribe<PacketCapturedEvent, PacketInfo>(OnPacketReceived);
 
             // Status update timer
@@ -198,13 +201,19 @@ namespace WareHound.UI.ViewModels
 
             CurrentTime = DateTime.Now;
 
-            // Load devices asynchronously after UI is ready
-            _ = InitializeAsync();
+            _initializeTask = InitializeAsync();
         }
 
-        private async Task InitializeAsync()
+        private async ValueTask InitializeAsync()
         {
-            await LoadDevicesAsync();
+            try
+            {
+                await LoadDevicesAsync();
+            }
+            catch (Exception ex)
+            {
+                _loggerService.LogError("Failed to initialize: " + ex.Message);
+            }
         }
 
         private async Task LoadDevicesAsync()
@@ -215,9 +224,8 @@ namespace WareHound.UI.ViewModels
 
             try
             {
-                await _snifferService.LoadDevicesAsync(TimeSpan.FromSeconds(30));
+                await _captureSession.LoadDevicesAsync(TimeSpan.FromSeconds(30));
                 
-                // Select first device after successful load
                 if (Devices.Count > 0 && SelectedDevice == null)
                 {
                     SelectedDevice = Devices[0];
@@ -228,15 +236,17 @@ namespace WareHound.UI.ViewModels
             catch (TimeoutException ex)
             {
                 DeviceLoadError = "Device loading timed out. Please retry.";
+                LogError("[MainWindowViewModel] Device loading timed out", ex);
                 Publish<DevicesLoadFailedEvent, string>(ex.Message);
             }
             catch (OperationCanceledException)
             {
-                // Cancelled - don't show error
+                LogWarning("[MainWindowViewModel] Device loading was cancelled");
             }
             catch (Exception ex)
             {
                 DeviceLoadError = $"Failed to load devices: {ex.Message}";
+                LogError($"[MainWindowViewModel] Failed to load devices", ex);
                 Publish<DevicesLoadFailedEvent, string>(ex.Message);
             }
             finally
@@ -263,9 +273,9 @@ namespace WareHound.UI.ViewModels
         {
             if (SelectedDevice == null || IsCapturing) return;
 
-            _snifferService.StartCapture();
+            _captureSession.StartCapture();
             
-            if (_snifferService.IsCapturing)
+            if (_captureSession.IsCapturing)
             {
                 IsCapturing = true;
                 Publish<CaptureStateChangedEvent, bool>(true);
@@ -278,7 +288,7 @@ namespace WareHound.UI.ViewModels
         {
             if (!IsCapturing) return;
 
-            _snifferService.StopCapture();
+            _captureSession.StopCapture();
             IsCapturing = false;
             Publish<CaptureStateChangedEvent, bool>(false);
         }
@@ -287,20 +297,19 @@ namespace WareHound.UI.ViewModels
 
         private void OnPacketReceived(PacketInfo packet)
         {
-            // Event is already published from UI thread
             PacketCount++;
         }
 
         private void ClearFilter()
         {
-            SelectedFilterType = FilterTypes[0]; // Reset to "All Fields"
+            SelectedFilterType = FilterTypes[0]; 
             FilterText = "";
         }
 
         private void OnStatusTimerTick(object? sender, EventArgs e)
         {
             CurrentTime = DateTime.Now;
-            IsCapturing = _snifferService.IsCapturing;
+            IsCapturing = _captureSession.IsCapturing;
             StatusText = IsCapturing ? "Capturing..." : "Ready";
         }
 
@@ -319,8 +328,7 @@ namespace WareHound.UI.ViewModels
 
             try
             {
-                var service = _pcapFactory.GetService();
-                var packets = await service.LoadAsync(dialog.FileName);
+                var packets = await _captureSession.LoadPcapAsync(dialog.FileName);
                 
                 // Publish event to load packets into CaptureViewModel
                 Publish<PcapLoadedEvent, IList<PacketInfo>>(packets);
@@ -330,6 +338,7 @@ namespace WareHound.UI.ViewModels
             }
             catch (Exception ex)
             {
+                LogError("[MainWindowViewModel] Failed to open PCAP file", ex);
                 System.Windows.MessageBox.Show(
                     $"Failed to open PCAP file:\n{ex.Message}", 
                     "Error", 
@@ -371,13 +380,13 @@ namespace WareHound.UI.ViewModels
                 // Request packets
                 Publish<PcapSaveRequestEvent>();
                 
-                // Wait for response with timeout
                 var packets = await Task.WhenAny(packetsTask.Task, Task.Delay(5000)) == packetsTask.Task
                     ? packetsTask.Task.Result
                     : new List<PacketInfo>();
 
                 if (packets.Count == 0)
                 {
+                    LogWarning("[MainWindowViewModel] No packets with raw data to save");
                     System.Windows.MessageBox.Show(
                         "No packets with raw data to save. Packets must have been captured (not loaded from metadata).",
                         "Warning",
@@ -386,13 +395,13 @@ namespace WareHound.UI.ViewModels
                     return;
                 }
 
-                var service = _pcapFactory.GetService();
-                await service.SaveAsync(dialog.FileName, packets);
+                await _captureSession.SavePcapAsync(dialog.FileName, packets);
                 
                 StatusText = $"Saved {packets.Count} packets";
             }
             catch (Exception ex)
             {
+                LogError("[MainWindowViewModel] Failed to save PCAP file", ex);
                 System.Windows.MessageBox.Show(
                     $"Failed to save PCAP file:\n{ex.Message}",
                     "Error",
@@ -409,7 +418,27 @@ namespace WareHound.UI.ViewModels
         protected override void OnDispose()
         {
             _statusTimer.Stop();
-            //_snifferService.PacketReceived -= OnPacketReceived;
+            _captureSession.CaptureStateChanged -= OnFacadeCaptureStateChanged;
+            _captureSession.ErrorOccurred -= OnFacadeError;
+            _captureSession.DevicesLoaded -= OnFacadeDevicesLoaded;
+        }
+
+        private void OnFacadeCaptureStateChanged(bool isCapturing)
+        {
+            IsCapturing = isCapturing;
+        }
+
+        private void OnFacadeError(string error)
+        {
+            LogError($"[MainWindowViewModel] Capture error: {error}");
+        }
+
+        private void OnFacadeDevicesLoaded()
+        {
+            if (Devices.Count > 0 && SelectedDevice == null)
+            {
+                SelectedDevice = Devices[0];
+            }
         }
     }
 

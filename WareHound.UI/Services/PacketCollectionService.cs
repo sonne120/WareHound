@@ -10,7 +10,6 @@ namespace WareHound.UI.Services
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
         public ObservableCollection<PacketInfo> Packets { get; set; } = new();
-
         public int PacketCount => Packets.Count;
         public string DisplayInfo => $"{Name} ({PacketCount} packets)";
     }

@@ -16,6 +16,7 @@ public class StatisticsViewModel : BaseViewModel
 {
     private readonly ISnifferService _snifferService;
     private readonly INativeStatisticsInterop? _nativeStats;
+    private readonly IStatisticsChannel _statisticsChannel;
     
     private CaptureStatistics _statistics = new();
     private bool _isCapturing;
@@ -29,7 +30,6 @@ public class StatisticsViewModel : BaseViewModel
     private long _packetCount;
     private CancellationTokenSource? _statsCts;
     private bool _isRefreshing;
-    protected ILoggerService logger;
 
     public CaptureStatistics Statistics
     {
@@ -113,10 +113,11 @@ public class StatisticsViewModel : BaseViewModel
     public DelegateCommand ClearCommand { get; }
     public DelegateCommand ToggleStatsSourceCommand { get; }
 
-    public StatisticsViewModel(ISnifferService snifferService, IEventAggregator eventAggregator, ILoggerService logger)
+    public StatisticsViewModel(ISnifferService snifferService, IEventAggregator eventAggregator, ILoggerService logger, IStatisticsChannel statisticsChannel)
         : base(eventAggregator, logger)
     {
         _snifferService = snifferService ?? throw new ArgumentNullException(nameof(snifferService));
+        _statisticsChannel = statisticsChannel ?? throw new ArgumentNullException(nameof(statisticsChannel));
 
         try
         {
@@ -124,7 +125,6 @@ public class StatisticsViewModel : BaseViewModel
             if (snifferHandle != IntPtr.Zero)
             {
                 _nativeStats = new NativeStatisticsInterop(snifferHandle);
-                // Enable native stats by default for better performance
                 _nativeStats.EnableNativeStats(true);
             }
         }
@@ -144,7 +144,7 @@ public class StatisticsViewModel : BaseViewModel
 
         _refreshTimer = new System.Windows.Threading.DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(1)
+            Interval = TimeSpan.FromMilliseconds(300) // Fast updates
         };
         _refreshTimer.Tick += (s, e) => RefreshStatistics();
     }
@@ -254,6 +254,9 @@ public class StatisticsViewModel : BaseViewModel
                     result.TopPorts,
                     p => p.Port,
                     (old, @new) => old.PacketCount != @new.PacketCount);
+                
+                // Publish snapshot to channel for CaptureView charts
+                PublishStatisticsSnapshot();
             });
         }
         catch (OperationCanceledException)
@@ -459,11 +462,56 @@ public class StatisticsViewModel : BaseViewModel
                 portList,
                 p => p.Port,
                 (old, @new) => old.PacketCount != @new.PacketCount);
+        
+            PublishStatisticsSnapshot();
         }
         catch
         {
             RefreshFromManaged();
         }
+    }
+    
+    // Track PPS history for min/max/avg
+    private readonly Queue<double> _ppsHistory = new();
+    private double _maxPps;
+    
+    private void PublishStatisticsSnapshot()
+    {
+        // Update PPS history
+        _ppsHistory.Enqueue(PacketsPerSecond);
+        while (_ppsHistory.Count > 60) _ppsHistory.Dequeue();
+        
+        if (PacketsPerSecond > _maxPps) _maxPps = PacketsPerSecond;
+        var avgPps = _ppsHistory.Count > 0 ? _ppsHistory.Average() : 0;
+        
+        // Build top talkers from source IPs
+        var topTalkers = TopSourceIPs.Take(5).Select(t => 
+        {
+            var percentage = TotalPackets > 0 ? (double)t.PacketCount / TotalPackets * 100 : 0;
+            return new TopTalkerItem(t.IP, t.PacketCount, percentage);
+        }).ToList();
+        
+        var captureElapsed = IsCapturing 
+            ? DateTime.Now - Statistics.CaptureStartTime 
+            : Statistics.Duration;
+        
+        var snapshot = new StatisticsSnapshot
+        {
+            TotalPackets = TotalPackets,
+            PacketsPerSecond = PacketsPerSecond,
+            Timestamp = DateTime.Now,
+            ProtocolStats = ProtocolStats.Select(p => new ProtocolStatItem(p.Protocol, p.PacketCount, p.Percentage)).ToList(),
+            TotalBytes = Statistics.TotalBytes,
+            UniqueProtocols = UniqueProtocols,
+            UniqueIps = UniqueIPs,
+            CaptureElapsed = captureElapsed,
+            TopTalkers = topTalkers,
+            CurrentPps = PacketsPerSecond,
+            AveragePps = avgPps,
+            MaxPps = _maxPps
+        };
+        
+        _statisticsChannel.Writer.TryWrite(snapshot);
     }
 
     private void RefreshFromManaged()
@@ -481,6 +529,10 @@ public class StatisticsViewModel : BaseViewModel
         _destIpCounts.Clear();
         _destPortCounts.Clear();
         Interlocked.Exchange(ref _packetCount, 0);
+        
+        // Clear PPS tracking
+        _ppsHistory.Clear();
+        _maxPps = 0;
         
         // Clear observable collections
         ProtocolStats.Clear();

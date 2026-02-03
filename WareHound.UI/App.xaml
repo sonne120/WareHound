@@ -28,6 +28,12 @@
             <conv:BoolToStatusConverter x:Key="BoolToStatus"/>
             <conv:PercentToWidthConverter x:Key="PercentToWidth"/>
             <conv:AllFalseConverter x:Key="AllFalseConverter"/>
+            <conv:IntToBoolConverter x:Key="IntToBoolConverter"/>
+            <conv:IntToVisibilityConverter x:Key="IntToVisibilityConverter"/>
+            <conv:PercentageToWidthConverter x:Key="PercentageToWidthConverter"/>
+            <conv:StringToColorConverter x:Key="StringToColorConverter"/>
+            <conv:LessThanConverter x:Key="LessThanConverter"/>
+            <conv:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </prism:PrismApplication>

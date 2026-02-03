@@ -9,7 +9,6 @@ namespace WareHound.UI.Models
         {
             Text = text;
         }
-
         public TreeNode AddChild(string text)
         {
             var child = new TreeNode(text);

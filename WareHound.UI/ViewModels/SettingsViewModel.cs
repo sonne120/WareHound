@@ -15,7 +15,9 @@ namespace WareHound.UI.ViewModels
         private string _captureFilter = "";
         private int _selectedTimeFormatIndex = 0;
         private int _selectedThemeIndex = 0;
-        private int _selectedPcapBackendIndex = 1; // Default to SharpPcap (managed)
+        private int _selectedPcapBackendIndex = 1; 
+        private bool _grpcEnabled = false;
+        private string _grpcServerAddress = "https://localhost:5001";
 
         public string[] TimeFormats { get; } = { "Relative", "Absolute", "Delta" };
         public string[] Themes { get; } = { "Light", "Dark" };
@@ -55,6 +57,46 @@ namespace WareHound.UI.ViewModels
                 }
             }
         }
+
+        /// <summary>
+        /// Enable/disable gRPC streaming to srv_pub microservice
+        /// </summary>
+        public bool GrpcEnabled
+        {
+            get => _grpcEnabled;
+            set
+            {
+                if (SetProperty(ref _grpcEnabled, value))
+                {
+                    PublishGrpcSettings();
+                }
+            }
+        }
+
+        public string GrpcServerAddress
+        {
+            get => _grpcServerAddress;
+            set
+            {
+                if (SetProperty(ref _grpcServerAddress, value))
+                {
+                    if (_grpcEnabled)
+                    {
+                        PublishGrpcSettings();
+                    }
+                }
+            }
+        }
+
+        private void PublishGrpcSettings()
+        {
+            Publish<GrpcEnabledChangedEvent, GrpcSettings>(new GrpcSettings
+            {
+                Enabled = _grpcEnabled,
+                ServerAddress = _grpcServerAddress
+            });
+        }
+
         public int SelectedTimeFormatIndex
         {
             get => _selectedTimeFormatIndex;

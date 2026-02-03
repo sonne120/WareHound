@@ -72,8 +72,6 @@ namespace WareHound.UI.Infrastructure.Services
             System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
             {
                 LogEntries.Add(entry);
-                
-                // Trim old entries if exceeded max
                 while (LogEntries.Count > MaxLogEntries)
                 {
                     LogEntries.RemoveAt(0);

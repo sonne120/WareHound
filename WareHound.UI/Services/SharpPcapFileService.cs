@@ -29,7 +29,6 @@ public class SharpPcapFileService : IPcapFileService
 
         await Task.Run(() =>
         {
-            // Delete existing file if present
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
@@ -151,7 +150,6 @@ public class SharpPcapFileService : IPcapFileService
         }
         catch
         {
-            // If parsing fails
             packetInfo.Protocol = "UNKNOWN";
         }
 

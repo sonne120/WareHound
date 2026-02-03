@@ -119,3 +119,123 @@ public class AllFalseConverter : IMultiValueConverter
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
+
+public class IntToBoolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is int index && parameter is string paramStr && int.TryParse(paramStr, out int expected))
+        {
+            return index == expected;
+        }
+        return false;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool isChecked && isChecked && parameter is string paramStr && int.TryParse(paramStr, out int index))
+        {
+            return index;
+        }
+        return Binding.DoNothing;
+    }
+}
+
+/// <summary>
+/// Converts an integer to Visibility (visible if index matches parameter).
+/// </summary>
+public class IntToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is int index && parameter is string paramStr && int.TryParse(paramStr, out int expected))
+        {
+            return index == expected ? Visibility.Visible : Visibility.Collapsed;
+        }
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Converts percentage and container width to actual width (multi-binding).
+/// </summary>
+public class PercentageToWidthConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values.Length >= 2 && 
+            values[0] is double percentage && 
+            values[1] is double containerWidth)
+        {
+            return Math.Max(0, (percentage / 100.0) * containerWidth);
+        }
+        return 0.0;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Converts hex color string (#RRGGBB) to Color.
+/// </summary>
+public class StringToColorConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is string hex && hex.StartsWith("#") && hex.Length >= 7)
+        {
+            try
+            {
+                return (Color)ColorConverter.ConvertFromString(hex);
+            }
+            catch
+            {
+                return Colors.Gray;
+            }
+        }
+        return Colors.Gray;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Returns true if value is less than parameter (for hiding text when bar is too small).
+/// </summary>
+public class LessThanConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is double val && parameter is string paramStr && double.TryParse(paramStr, out double threshold))
+        {
+            return val < threshold;
+        }
+        return false;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Returns Visible if value is 0, Collapsed otherwise.
+/// </summary>
+public class ZeroToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        int count = 0;
+        if (value is int i) count = i;
+        else if (value is long l) count = (int)l;
+        
+        return count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}

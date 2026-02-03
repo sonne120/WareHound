@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
-    <ProjectGuid>{A1B2C3D4-1111-2222-3333-444455556666}</ProjectGuid>
+    <ProjectGuid>{E3671798-1BAC-4B94-80F8-0A567758C0B8}</ProjectGuid>
     <RootNamespace>WareHoundSniffer</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <!-- Fallback SolutionDir when building project standalone -->

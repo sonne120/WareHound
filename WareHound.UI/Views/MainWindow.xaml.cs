@@ -133,4 +133,9 @@ public partial class MainWindow : Window
     {
         NavPopup.IsOpen = false;
     }
+
+    private void FilterTypeComboBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+
+    }
 }

@@ -205,7 +205,6 @@
                                     Margin="16,0,0,0">
                             <!-- Interface Selection with Loading Overlay -->
                             <Grid Width="280">
-                                <!-- ComboBox - shown when not loading and no error -->
                                 <ComboBox Style="{StaticResource ModernComboBoxStyle}"
                                           Height="26"
                                           ItemsSource="{Binding Devices}" 
@@ -329,16 +328,15 @@
 
                             <!-- Filter Section -->
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                                <!-- Filter Type ComboBox -->
                                 <ComboBox x:Name="FilterTypeComboBox"
                                           Style="{StaticResource ModernComboBoxStyle}"
                                           ItemsSource="{Binding FilterTypes}"
                                           SelectedItem="{Binding SelectedFilterType}"
                                           DisplayMemberPath="DisplayName"
                                           Width="100" Height="26"
-                                          Margin="0,0,4,0"/>
+                                          Margin="0,0,4,0" SelectionChanged="FilterTypeComboBox_SelectionChanged"/>
 
-                                <!-- Filter Value TextBox (shown when filter type is selected) -->
+                                <!-- Filter Value TextBox-->
                                 <Grid VerticalAlignment="Center" 
                                       Visibility="{Binding IsFilterTypeSelected, Converter={StaticResource BoolToVisibility}}">
                                     <TextBlock Text="{Binding FilterPlaceholder}" 

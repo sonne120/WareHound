@@ -18,6 +18,7 @@ public partial class CaptureView : UserControl
     {
         InitializeComponent();
         Loaded += CaptureView_Loaded;
+        Unloaded += CaptureView_Unloaded;
         DataContextChanged += CaptureView_DataContextChanged;
     }
 
@@ -76,11 +77,14 @@ public partial class CaptureView : UserControl
             collection.CollectionChanged += Packets_CollectionChanged;
         }
 
-        // Initialize MAC column visibility
         if (DataContext is CaptureViewModel vm)
         {
             UpdateMacColumnsVisibility(vm.ShowMacAddresses);
         }
+    }
+
+    private void CaptureView_Unloaded(object sender, RoutedEventArgs e)
+    {
     }
 
     private void Packets_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

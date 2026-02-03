@@ -55,7 +55,6 @@ public class PacketInfo : INotifyPropertyChanged
 
     public static PacketInfo FromSnapshot(SnapshotStruct snapshot, int number)
     {
-        // Convert Unix timestamp to DateTime
         DateTime captureTime;
         if (snapshot.TimestampSec > 0)
         {
