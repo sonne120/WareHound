@@ -86,7 +86,7 @@ public class StatisticsViewTests : WpfUITestBase
     private void NavigateToStatisticsView()
     {
         var statisticsMenuItem = FindElementByName("Statistics");
-        statisticsMenuItem?.AsButton()?.Invoke();
+        statisticsMenuItem?.Click();
         Thread.Sleep(500);
     }
 }

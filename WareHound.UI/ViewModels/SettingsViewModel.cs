@@ -58,9 +58,6 @@ namespace WareHound.UI.ViewModels
             }
         }
 
-        /// <summary>
-        /// Enable/disable gRPC streaming to srv_pub microservice
-        /// </summary>
         public bool GrpcEnabled
         {
             get => _grpcEnabled;

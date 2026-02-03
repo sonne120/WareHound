@@ -88,7 +88,7 @@ public class SettingsViewTests : WpfUITestBase
     private void NavigateToSettingsView()
     {
         var settingsMenuItem = FindElementByName("Settings");
-        settingsMenuItem?.AsButton()?.Invoke();
+        settingsMenuItem?.Click();
         Thread.Sleep(500);
     }
 }

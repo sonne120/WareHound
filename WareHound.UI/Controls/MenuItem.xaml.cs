@@ -12,7 +12,6 @@ namespace WareHound.UI.Controls
             InitializeComponent();
         }
 
-        // Command property
         public static readonly DependencyProperty CommandProperty =
             DependencyProperty.Register("Command", typeof(ICommand), typeof(MenuItem));
 

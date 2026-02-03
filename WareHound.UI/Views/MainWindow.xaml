@@ -285,14 +285,20 @@
                             </Grid>
                             
                             <!-- Play/Stop Buttons -->
-                            <Button Style="{StaticResource CaptureControlButtonStyle}"
+                            <Button x:Name="StartCaptureButton"
+                                    Style="{StaticResource CaptureControlButtonStyle}"
                                     Tag="{StaticResource PlayIcon}"
                                     Command="{Binding StartCaptureCommand}"
+                                    AutomationProperties.AutomationId="StartCaptureButton"
+                                    AutomationProperties.Name="Start Capture"
                                     ToolTip="Start Capture"
                                     Margin="8,0,0,0"/>
-                            <Button Style="{StaticResource CaptureControlButtonStyle}"
+                            <Button x:Name="StopCaptureButton"
+                                    Style="{StaticResource CaptureControlButtonStyle}"
                                     Tag="{StaticResource StopIcon}"
                                     Command="{Binding StopCaptureCommand}"
+                                    AutomationProperties.AutomationId="StopCaptureButton"
+                                    AutomationProperties.Name="Stop Capture"
                                     ToolTip="Stop Capture">
                                 <Button.Resources>
                                     <Style TargetType="Path">

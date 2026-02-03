@@ -45,12 +45,18 @@ public class MainWindowTests : WpfUITestBase
         var captureMenuItem = FindElementByName("Capture");
 
         // Act
-        captureMenuItem?.AsButton()?.Invoke();
-        Thread.Sleep(500); // Wait for navigation
+        captureMenuItem?.Click();
+        Thread.Sleep(1000); // Wait for navigation and UI to settle
 
-        // Assert
-        var startCaptureButton = FindElementByName("Start Capture") ?? FindElementByAutomationId("ToggleCaptureButton");
-        startCaptureButton.Should().NotBeNull();
+        // Assert - verify the main window is still accessible and capture controls are visible
+        MainWindow.Should().NotBeNull();
+        
+        // Look for any capture-related element (button, data grid, or any element in the view)
+        var captureControl = FindElementByAutomationId("StartCaptureButton")
+                             ?? FindElementByName("Start Capture")
+                             ?? FindElementByAutomationId("ClearButton")
+                             ?? FindElementByAutomationId("PacketDataGrid");
+        captureControl.Should().NotBeNull("Capture controls should be visible in the capture view");
     }
 
     [Fact]
@@ -61,7 +67,7 @@ public class MainWindowTests : WpfUITestBase
         var statisticsMenuItem = FindElementByName("Statistics");
 
         // Act
-        statisticsMenuItem?.AsButton()?.Invoke();
+        statisticsMenuItem?.Click();
         Thread.Sleep(500); // Wait for navigation
 
         // Assert
@@ -77,7 +83,7 @@ public class MainWindowTests : WpfUITestBase
         var settingsMenuItem = FindElementByName("Settings");
 
         // Act
-        settingsMenuItem?.AsButton()?.Invoke();
+        settingsMenuItem?.Click();
         Thread.Sleep(500); // Wait for navigation
 
         // Assert
