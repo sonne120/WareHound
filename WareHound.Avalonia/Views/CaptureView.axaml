@@ -1,0 +1,168 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WareHound.Avalonia.ViewModels"
+             xmlns:m="using:WareHound.Avalonia.Models"
+             xmlns:conv="using:WareHound.Avalonia.Converters"
+             xmlns:views="using:WareHound.Avalonia.Views"
+             x:Class="WareHound.Avalonia.Views.CaptureView"
+             x:DataType="vm:CaptureViewModel"
+             Background="{StaticResource PrimaryBrush}">
+
+    <UserControl.Resources>
+        <conv:ProtocolToColorConverter x:Key="ProtocolToColor"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="2*" MinHeight="150"/>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="*" MinHeight="150"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="{StaticResource SecondaryBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="4">
+            <DataGrid x:Name="PacketGrid"
+                      ItemsSource="{Binding FilteredPackets}"
+                      SelectedItem="{Binding SelectedPacket}"
+                      AutoGenerateColumns="False"
+                      CanUserResizeColumns="True"
+                      CanUserReorderColumns="True"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      SelectionMode="Single"
+                      RowBackground="Transparent"
+                      LoadingRow="PacketGrid_LoadingRow">
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="No." Binding="{Binding Number}" Width="60"/>
+                    <DataGridTextColumn Header="Time" Binding="{Binding TimeDisplay}" Width="100"/>
+                    <DataGridTextColumn Header="Src MAC" Binding="{Binding SourceMac}" Width="110"/>
+                    <DataGridTextColumn Header="Source" Binding="{Binding SourceIp}" Width="120"/>
+                    <DataGridTextColumn Header="Dst MAC" Binding="{Binding DestMac}" Width="110"/>
+                    <DataGridTextColumn Header="Destination" Binding="{Binding DestIp}" Width="120"/>
+                    <DataGridTextColumn Header="Protocol" Binding="{Binding Protocol}" Width="80"/>
+                    <DataGridTextColumn Header="Src Port" Binding="{Binding SourcePort}" Width="70"/>
+                    <DataGridTextColumn Header="Dst Port" Binding="{Binding DestPort}" Width="70"/>
+                    <DataGridTextColumn Header="Length" Binding="{Binding OriginalLen}" Width="70"/>
+                    <DataGridTextColumn Header="Info" Binding="{Binding Info}" Width="*"/>
+                </DataGrid.Columns>
+
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Save to Dashboard" Command="{Binding SaveToDashboardCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="Copy Source IP" Command="{Binding CopySourceIpCommand}"/>
+                        <MenuItem Header="Copy Destination IP" Command="{Binding CopyDestIpCommand}"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+            </DataGrid>
+        </Border>
+
+        <GridSplitter Grid.Row="1"
+                      Height="5"
+                      HorizontalAlignment="Stretch"
+                      Background="{StaticResource BorderBrush}"/>
+
+        <Border Grid.Row="2"
+                Background="{StaticResource SecondaryBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Margin="4">
+
+            <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+                <TabItem Header="📋 Packet Details">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    IsVisible="{Binding SelectedPacket, Converter={x:Static ObjectConverters.IsNull}}">
+                            <TextBlock Text="📦"
+                                       FontSize="48"
+                                       HorizontalAlignment="Center"
+                                       Opacity="0.5"/>
+                            <TextBlock Text="Select a packet to view details"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                        <TreeView ItemsSource="{Binding PacketDetails}"
+                                  Background="Transparent"
+                                  Margin="4"
+                                  IsVisible="{Binding SelectedPacket, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <TreeView.ItemTemplate>
+                                <TreeDataTemplate ItemsSource="{Binding Children}" x:DataType="m:TreeNode">
+                                    <TextBlock Text="{Binding Text}"
+                                               FontFamily="Consolas, Menlo, Monaco, monospace"
+                                               FontSize="12"
+                                               Foreground="{StaticResource TextPrimaryBrush}"/>
+                                </TreeDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="🔢 Hex Dump">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    IsVisible="{Binding SelectedPacket, Converter={x:Static ObjectConverters.IsNull}}">
+                            <TextBlock Text="📦"
+                                       FontSize="48"
+                                       HorizontalAlignment="Center"
+                                       Opacity="0.5"/>
+                            <TextBlock Text="Select a packet to view hex dump"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,8,0,0"/>
+                        </StackPanel>
+
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Auto"
+                                      IsVisible="{Binding SelectedPacket, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <TextBlock Text="{Binding PacketHexDump}"
+                                       FontFamily="Consolas, Menlo, Monaco, monospace"
+                                       FontSize="12"
+                                       Padding="8"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Border>
+
+        <Border Grid.Row="3"
+                Background="{StaticResource TertiaryBrush}"
+                CornerRadius="4"
+                Padding="8,4"
+                Margin="4,0,4,4">
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Packets.Count, StringFormat='Packets: {0}'}"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="11"/>
+
+                    <Rectangle Width="1"
+                               Height="12"
+                               Fill="{StaticResource BorderBrush}"
+                               Margin="12,0"/>
+
+                    <TextBlock Text="{Binding SelectedPacket.Protocol, StringFormat='Selected: {0}', FallbackValue='Selected: None'}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <TextBlock Text="{Binding IsCapturing, Converter={x:Static views:CaptureView.CaptureStatusConverter}}"
+                               FontSize="11"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

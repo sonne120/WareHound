@@ -222,9 +222,6 @@ public class LessThanConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>
-/// Returns Visible if value is 0, Collapsed otherwise.
-/// </summary>
 public class ZeroToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

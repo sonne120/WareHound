@@ -1,0 +1,201 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style>
+        <Style.Resources>
+            <Color x:Key="PrimaryColor">#F5F5F7</Color>
+            <Color x:Key="SecondaryColor">#FFFFFF</Color>
+            <Color x:Key="TertiaryColor">#E8E8ED</Color>
+            <Color x:Key="SidebarColor">#F0F0F5</Color>
+            <Color x:Key="AccentColor">#007AFF</Color>
+            <Color x:Key="AccentLightColor">#5AC8FA</Color>
+
+            <Color x:Key="TextPrimaryColor">#3D3D44</Color>
+            <Color x:Key="TextSecondaryColor">#8E8E93</Color>
+            <Color x:Key="TextDisabledColor">#C7C7CC</Color>
+
+            <Color x:Key="BorderColor">#D2D2D7</Color>
+            <Color x:Key="BorderLightColor">#E5E5EA</Color>
+
+            <Color x:Key="SuccessColor">#34C759</Color>
+            <Color x:Key="WarningColor">#FF9500</Color>
+            <Color x:Key="ErrorColor">#FF3B30</Color>
+            <Color x:Key="InfoColor">#007AFF</Color>
+
+            <Color x:Key="TcpColor">#E6E6FA</Color>
+            <Color x:Key="TlsColor">#C8E6C9</Color>
+            <Color x:Key="HttpColor">#E1F5FE</Color>
+            <Color x:Key="UdpColor">#DAEAF8</Color>
+            <Color x:Key="DnsColor">#E8F5E9</Color>
+            <Color x:Key="DhcpColor">#FFFDE7</Color>
+            <Color x:Key="IcmpColor">#FCE4EC</Color>
+            <Color x:Key="ArpColor">#FFF3E0</Color>
+
+            <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}" />
+            <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}" />
+            <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource TertiaryColor}" />
+            <SolidColorBrush x:Key="SidebarBrush" Color="{StaticResource SidebarColor}" />
+            <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}" />
+            <SolidColorBrush x:Key="AccentLightBrush" Color="{StaticResource AccentLightColor}" />
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
+            <SolidColorBrush x:Key="TextDisabledBrush" Color="{StaticResource TextDisabledColor}" />
+            <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}" />
+            <SolidColorBrush x:Key="BorderLightBrush" Color="{StaticResource BorderLightColor}" />
+            <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
+            <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
+            <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
+        </Style.Resources>
+    </Style>
+
+    <Style Selector="Window">
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+    </Style>
+
+    <Style Selector="Button.accent">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="12,6" />
+    </Style>
+
+    <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentLightBrush}" />
+    </Style>
+
+    <Style Selector="Button.control">
+        <Setter Property="Background" Value="{StaticResource TertiaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="MinWidth" Value="32" />
+        <Setter Property="MinHeight" Value="28" />
+    </Style>
+
+    <Style Selector="Button.control:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource BorderLightBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.header">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.secondary">
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="DataGrid">
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}" />
+        <Setter Property="RowBackground" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderLightBrush}" />
+    </Style>
+
+    <Style Selector="DataGridColumnHeader">
+        <Setter Property="Background" Value="{StaticResource TertiaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="DataGridRow">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="DataGridRow:pointerover /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="{StaticResource TertiaryBrush}" />
+    </Style>
+
+    <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+        <Setter Property="Fill" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Opacity" Value="0.3" />
+    </Style>
+
+    <Style Selector="TabControl">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="TabItem">
+        <Setter Property="Background" Value="{StaticResource TertiaryBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Margin" Value="0,0,2,0" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style Selector="TabItem:pointerover">
+        <Setter Property="Background" Value="{StaticResource BorderLightBrush}" />
+    </Style>
+
+    <Style Selector="TabItem:selected">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style Selector="ListBox">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="8,8" />
+        <Setter Property="Margin" Value="2" />
+        <Setter Property="CornerRadius" Value="6" />
+    </Style>
+
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource TertiaryBrush}" />
+    </Style>
+
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <Style Selector="ListBoxItem:selected TextBlock">
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{StaticResource SecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <Style Selector="ToggleSwitch:checked /template/ Border#SwitchKnobBounds">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+    </Style>
+
+    <Style Selector="TreeView">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="TreeViewItem">
+        <Setter Property="Padding" Value="2" />
+    </Style>
+
+    <Style Selector="ScrollBar">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+</Styles>

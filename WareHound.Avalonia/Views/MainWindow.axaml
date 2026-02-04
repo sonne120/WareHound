@@ -1,0 +1,375 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WareHound.Avalonia.ViewModels"
+        xmlns:m="using:WareHound.Avalonia.Models"
+        xmlns:views="using:WareHound.Avalonia.Views"
+        xmlns:conv="using:WareHound.Avalonia.Converters"
+        x:Class="WareHound.Avalonia.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="WareHound - Network Packet Analyzer"
+        Width="1100" Height="700"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource PrimaryBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1">
+
+    <Window.Resources>
+        <conv:IntToVisibilityConverter x:Key="IntToVisibility"/>
+        <conv:IconKeyToGeometryConverter x:Key="IconKeyToGeometry"/>
+    </Window.Resources>
+
+    <Border Background="{StaticResource PrimaryBrush}"
+            CornerRadius="8"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Background="{StaticResource SidebarBrush}"
+                    CornerRadius="8,0,0,8"
+                    Width="{Binding IsSidebarExpanded, Converter={x:Static views:MainWindow.SidebarWidthConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="32"/>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"/>
+
+                    <Grid Grid.Row="1" VerticalAlignment="Center">
+                        <TextBlock Text="🐺" FontSize="24"
+                                   HorizontalAlignment="Left" VerticalAlignment="Center"
+                                   Margin="18,0,0,0"/>
+                        <TextBlock Text="WareHound"
+                                   FontSize="16" FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Left"
+                                   Margin="60,0,0,0"
+                                   IsVisible="{Binding IsSidebarExpanded}"/>
+                    </Grid>
+
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding MenuItems}"
+                             SelectedIndex="{Binding SelectedViewIndex}"
+                             Background="Transparent"
+                             Margin="0,20,8,20">
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0,2"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                            <Style Selector="ListBoxItem Border.selection-indicator">
+                                <Setter Property="IsVisible" Value="False"/>
+                            </Style>
+                            <Style Selector="ListBoxItem:selected Border.selection-indicator">
+                                <Setter Property="IsVisible" Value="True"/>
+                            </Style>
+                        </ListBox.Styles>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:MenuItemViewModel">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="4"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <Border Grid.Column="0"
+                                            Classes="selection-indicator"
+                                            Background="{StaticResource AccentBrush}"
+                                            CornerRadius="0,2,2,0"
+                                            Width="4"
+                                            VerticalAlignment="Stretch"/>
+
+                                    <Border Grid.Column="1"
+                                            Padding="8,10"
+                                            Margin="4,0,0,0"
+                                            CornerRadius="6"
+                                            Background="Transparent">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="32"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Path Grid.Column="0"
+                                                  Data="{Binding IconKey, Converter={StaticResource IconKeyToGeometry}}"
+                                                  Width="{Binding IconSize}"
+                                                  Height="{Binding IconSize}"
+                                                  Stretch="Uniform"
+                                                  Fill="{StaticResource TextPrimaryBrush}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Title}"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="8,0,0,0"/>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel Grid.Row="3" Margin="12,0,12,16">
+                        <Border Background="{StaticResource TertiaryBrush}"
+                                CornerRadius="12" Padding="8,4"
+                                HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="{Binding IsCapturing, Converter={x:Static views:MainWindow.StatusColorConverter}}"/>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                                <TextBlock Text="{Binding StatusText}"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           FontSize="10"
+                                           IsVisible="{Binding IsSidebarExpanded}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="32"/>
+                    <RowDefinition Height="40"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="24"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0"
+                        Background="{StaticResource SecondaryBrush}"
+                        PointerPressed="TitleBar_PointerPressed">
+                    <Grid Margin="8,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="WareHound - Network Packet Analyzer"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"/>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <Button Classes="control" Click="MinimizeWindow" Width="32" Height="28">
+                                <TextBlock Text="—" FontSize="12"/>
+                            </Button>
+                            <Button Classes="control" Click="MaximizeWindow" Width="32" Height="28" Margin="4,0">
+                                <TextBlock Text="□" FontSize="14"/>
+                            </Button>
+                            <Button Classes="control" Click="CloseWindow" Width="32" Height="28">
+                                <TextBlock Text="✕" FontSize="12" Foreground="{StaticResource ErrorBrush}"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1"
+                        Background="{StaticResource SecondaryBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="0,1,0,0">
+                    <Grid Margin="8,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                            <Button Classes="control"
+                                    Command="{Binding ToggleSidebarCommand}"
+                                    Width="32" Height="32"
+                                    Margin="0,0,8,0">
+                                <Path Data="{StaticResource HamburgerIcon}"
+                                      Width="16" Height="16"
+                                      Stretch="Uniform"
+                                      Fill="{StaticResource TextPrimaryBrush}"/>
+                            </Button>
+
+                            <ComboBox ItemsSource="{Binding Devices}"
+                                      SelectedItem="{Binding SelectedDevice}"
+                                      Width="280" Height="26"
+                                      IsEnabled="{Binding !IsCapturing}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="m:NetworkDevice">
+                                        <TextBlock Text="{Binding DisplayName}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <Button Classes="control start-button"
+                                    Command="{Binding StartCaptureCommand}"
+                                    ToolTip.Tip="Start Capture"
+                                    IsEnabled="{Binding !IsCapturing}"
+                                    Margin="8,0,4,0"
+                                    Width="26" Height="26">
+                                <Button.Styles>
+                                    <Style Selector="Button.start-button:disabled Path">
+                                        <Setter Property="Fill" Value="{StaticResource TextSecondaryBrush}"/>
+                                    </Style>
+                                    <Style Selector="Button.start-button:not(:disabled) Path">
+                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+                                    </Style>
+                                </Button.Styles>
+                                <Path Data="M8,5.14V19.14L19,12.14L8,5.14Z"
+                                      Width="14" Height="14"
+                                      Stretch="Uniform"/>
+                            </Button>
+
+                            <Button Classes="control stop-button"
+                                    Command="{Binding StopCaptureCommand}"
+                                    ToolTip.Tip="Stop Capture"
+                                    IsEnabled="{Binding IsCapturing}"
+                                    Margin="4,0,0,0"
+                                    Width="26" Height="26">
+                                <Button.Styles>
+                                    <Style Selector="Button.stop-button:disabled Path">
+                                        <Setter Property="Fill" Value="{StaticResource TextSecondaryBrush}"/>
+                                    </Style>
+                                    <Style Selector="Button.stop-button:not(:disabled) Path">
+                                        <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
+                                    </Style>
+                                </Button.Styles>
+                                <Path Data="M6,6H18V18H6V6Z"
+                                      Width="14" Height="14"
+                                      Stretch="Uniform"/>
+                            </Button>
+
+                            <Rectangle Width="1" Height="20" Fill="{StaticResource BorderBrush}" Margin="12,0"/>
+
+                            <Button Command="{Binding ClearCommand}"
+                                    Content="Clear"
+                                    Padding="16,0"
+                                    Height="26"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Background="{StaticResource AccentBrush}"
+                                    Foreground="White"/>
+
+                            <Rectangle Width="1" Height="20" Fill="{StaticResource BorderBrush}" Margin="8,0"/>
+
+                            <Button Classes="control open-pcap-button"
+                                    Command="{Binding OpenPcapCommand}"
+                                    ToolTip.Tip="Open PCAP File"
+                                    IsEnabled="{Binding !IsCapturing}"
+                                    Width="32" Height="26">
+                                <Button.Styles>
+                                    <Style Selector="Button.open-pcap-button:disabled Path">
+                                        <Setter Property="Fill" Value="{StaticResource TextSecondaryBrush}"/>
+                                    </Style>
+                                    <Style Selector="Button.open-pcap-button:not(:disabled) Path">
+                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+                                    </Style>
+                                </Button.Styles>
+                                <Path Data="M19,20H4C2.89,20 2,19.1 2,18V6C2,4.89 2.89,4 4,4H10L12,6H19A2,2 0 0,1 21,8H21L4,8V18L6.14,10H23.21L20.93,18.5C20.7,19.37 19.92,20 19,20Z"
+                                      Width="14" Height="14"
+                                      Stretch="Uniform"/>
+                            </Button>
+
+                            <Button Classes="control"
+                                    Command="{Binding SavePcapCommand}"
+                                    ToolTip.Tip="Save as PCAP"
+                                    Margin="4,0,0,0"
+                                    Width="32" Height="26">
+                                <Path Data="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"
+                                      Width="14" Height="14"
+                                      Stretch="Uniform"
+                                      Fill="{StaticResource TextSecondaryBrush}"/>
+                            </Button>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <ComboBox ItemsSource="{Binding FilterTypes}"
+                                          SelectedItem="{Binding SelectedFilterType}"
+                                          Width="100" Height="26"/>
+
+                                <TextBox Text="{Binding FilterText}"
+                                         Width="150" Height="26"
+                                         Watermark="{Binding FilterPlaceholder}"
+                                         IsVisible="{Binding IsFilterTypeSelected}"
+                                         Margin="4,0,0,0"
+                                         VerticalContentAlignment="Center"
+                                         Padding="8,0"/>
+
+                                <Button Classes="control"
+                                        Command="{Binding ClearFilterCommand}"
+                                        ToolTip.Tip="Clear Filter"
+                                        Width="26" Height="26"
+                                        IsVisible="{Binding IsFilterTypeSelected}"
+                                        Margin="4,0,0,0">
+                                    <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                          Width="10" Height="10"
+                                          Stretch="Uniform"
+                                          Fill="{StaticResource TextSecondaryBrush}"/>
+                                </Button>
+                            </StackPanel>
+
+                            <TextBlock Margin="16,0,0,0"
+                                       Text="{Binding PacketCount, StringFormat='Packets: {0}'}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       FontSize="12"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="2" x:Name="ContentGrid" x:CompileBindings="False">
+                    <views:CaptureView DataContext="{Binding CaptureViewModel}"
+                                       IsVisible="{Binding $parent[Window].DataContext.SelectedViewIndex, Converter={StaticResource IntToVisibility}, ConverterParameter=0}"/>
+
+                    <views:DashboardView DataContext="{Binding DashboardViewModel}"
+                                         IsVisible="{Binding $parent[Window].DataContext.SelectedViewIndex, Converter={StaticResource IntToVisibility}, ConverterParameter=1}"/>
+
+                    <views:StatisticsView DataContext="{Binding StatisticsViewModel}"
+                                          IsVisible="{Binding $parent[Window].DataContext.SelectedViewIndex, Converter={StaticResource IntToVisibility}, ConverterParameter=2}"/>
+
+                    <views:LogView DataContext="{Binding LogViewModel}"
+                                   IsVisible="{Binding $parent[Window].DataContext.SelectedViewIndex, Converter={StaticResource IntToVisibility}, ConverterParameter=3}"/>
+
+                    <views:SettingsView DataContext="{Binding SettingsViewModel}"
+                                        IsVisible="{Binding $parent[Window].DataContext.SelectedViewIndex, Converter={StaticResource IntToVisibility}, ConverterParameter=4}"/>
+                </Grid>
+
+                <Border Grid.Row="3" Background="{StaticResource AccentBrush}">
+                    <Grid Margin="8,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding PacketCount, StringFormat='Total Packets: {0}'}"
+                                   Foreground="White" FontSize="11"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding DeviceLoadError}"
+                                   Foreground="#FFCCCC" FontSize="11"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   IsVisible="{Binding HasDeviceLoadError}"/>
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding CurrentTime, StringFormat='{}{0:HH:mm:ss}'}"
+                                   Foreground="White" FontSize="11"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

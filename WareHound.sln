@@ -15,6 +15,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WareHound.IntegrationTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WareHound.UITests", "WareHound.UITests\WareHound.UITests.csproj", "{F3A4B5C6-7777-8888-9999-000011112222}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WareHound.Avalonia", "WareHound.Avalonia\WareHound.Avalonia.csproj", "{A1B2C3D4-1111-2222-3333-444455556666}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E3671798-1BAC-4B94-80F8-0A567758C0B8} = {E3671798-1BAC-4B94-80F8-0A567758C0B8}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +46,10 @@ Global
 		{F3A4B5C6-7777-8888-9999-000011112222}.Debug|x64.Build.0 = Debug|x64
 		{F3A4B5C6-7777-8888-9999-000011112222}.Release|x64.ActiveCfg = Release|x64
 		{F3A4B5C6-7777-8888-9999-000011112222}.Release|x64.Build.0 = Release|x64
+		{A1B2C3D4-1111-2222-3333-444455556666}.Debug|x64.ActiveCfg = Debug|x64
+		{A1B2C3D4-1111-2222-3333-444455556666}.Debug|x64.Build.0 = Debug|x64
+		{A1B2C3D4-1111-2222-3333-444455556666}.Release|x64.ActiveCfg = Release|x64
+		{A1B2C3D4-1111-2222-3333-444455556666}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

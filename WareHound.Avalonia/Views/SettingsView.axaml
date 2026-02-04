@@ -1,0 +1,274 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WareHound.Avalonia.ViewModels"
+             x:Class="WareHound.Avalonia.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             Background="{StaticResource PrimaryBrush}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16" MaxWidth="800">
+
+            <TextBlock Text="⚙️ Settings"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       Margin="0,0,0,24"/>
+
+            <TextBlock Text="CAPTURE"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,0,0,8"/>
+
+            <Border Background="{StaticResource SecondaryBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Auto-scroll packets"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Automatically scroll to new packets during capture"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <ToggleSwitch IsChecked="{Binding AutoScroll}"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Maximum packet buffer"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Maximum number of packets to display (impacts performance)"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding MaxPacketBuffer}"
+                                 Width="100"
+                                 Height="28"
+                                 HorizontalAlignment="Right"
+                                 VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Default capture filter"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="BPF filter expression applied to all captures"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding CaptureFilter}"
+                                 Watermark="e.g. tcp port 80"
+                                 Width="200"
+                                 Height="28"
+                                 HorizontalAlignment="Right"
+                                 VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="DISPLAY"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,0,0,8"/>
+
+            <Border Background="{StaticResource SecondaryBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Show MAC addresses"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Display MAC address columns in packet list"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <ToggleSwitch IsChecked="{Binding ShowMacAddresses}"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Theme"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Application color theme"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <ComboBox ItemsSource="{Binding Themes}"
+                                  SelectedIndex="{Binding SelectedThemeIndex}"
+                                  Width="150"
+                                  Height="28"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="Time format"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="How packet timestamps are displayed"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <ComboBox ItemsSource="{Binding TimeFormats}"
+                                  SelectedIndex="{Binding SelectedTimeFormatIndex}"
+                                  Width="150"
+                                  Height="28"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="FILE OPERATIONS"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,0,0,8"/>
+
+            <Border Background="{StaticResource SecondaryBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="PCAP backend"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Library used for reading/writing PCAP files"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <ComboBox ItemsSource="{Binding PcapBackends}"
+                                  SelectedIndex="{Binding SelectedPcapBackendIndex}"
+                                  Width="200"
+                                  Height="28"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="MICROSERVICES"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,0,0,8"/>
+
+            <Border Background="{StaticResource SecondaryBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="Enable gRPC streaming"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Stream captured packets to a gRPC server"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <ToggleSwitch IsChecked="{Binding GrpcEnabled}"
+                                      HorizontalAlignment="Right"
+                                      VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Grid IsVisible="{Binding GrpcEnabled}">
+                        <StackPanel>
+                            <TextBlock Text="gRPC server address"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Address of the gRPC server to connect to"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="11"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding GrpcServerAddress}"
+                                 Width="250"
+                                 Height="28"
+                                 HorizontalAlignment="Right"
+                                 VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="ABOUT"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       Margin="0,0,0,8"/>
+
+            <Border Background="{StaticResource SecondaryBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="🐺" FontSize="32" VerticalAlignment="Center"/>
+                        <StackPanel Margin="12,0,0,0">
+                            <TextBlock Text="WareHound"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                            <TextBlock Text="Network Packet Analyzer"
+                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="Version"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="1.0.0 (Avalonia)"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="Framework"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="Avalonia UI + ReactiveUI"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <Grid Margin="0,8,0,0">
+                        <TextBlock Text="Platform"
+                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="Cross-platform (Windows, macOS, Linux)"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                <Button Classes="control"
+                        Command="{Binding ResetCommand}"
+                        Content="Reset to Defaults"
+                        Padding="16,8"
+                        Margin="0,0,8,0"/>
+                <Button Classes="accent"
+                        Command="{Binding ApplyCommand}"
+                        Content="Apply Settings"
+                        Padding="16,8"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

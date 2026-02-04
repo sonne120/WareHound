@@ -1,0 +1,143 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WareHound.Avalonia.ViewModels"
+             xmlns:m="using:WareHound.Avalonia.Models"
+             x:Class="WareHound.Avalonia.Views.LogView"
+             x:DataType="vm:LogViewModel"
+             Background="{StaticResource PrimaryBrush}">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Application Logs"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}"/>
+                <TextBlock Text="View and manage application log entries"
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Command="{Binding CopySelectedCommand}"
+                        Content="Copy"
+                        Height="28"
+                        Padding="16,0"
+                        Margin="0,0,8,0"
+                        Background="#E0E0E0"
+                        Foreground="#666666"/>
+                <Button Command="{Binding ExportLogsCommand}"
+                        Content="Export"
+                        Height="28"
+                        Padding="16,0"
+                        Margin="0,0,8,0"
+                        Background="{StaticResource AccentBrush}"
+                        Foreground="White"/>
+                <Button Command="{Binding ClearLogsCommand}"
+                        Content="Clear"
+                        Height="28"
+                        Padding="16,0"
+                        Background="{StaticResource AccentBrush}"
+                        Foreground="White"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Level:"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <ComboBox ItemsSource="{Binding LogLevels}"
+                          SelectedIndex="{Binding SelectedLevelIndex}"
+                          Width="100"
+                          Height="28"/>
+            </StackPanel>
+
+            <TextBox Grid.Column="1"
+                     Text="{Binding FilterText}"
+                     Watermark="Search..."
+                     Width="200"
+                     Height="28"
+                     Margin="16,0,0,0"
+                     VerticalContentAlignment="Center"
+                     Padding="8,0"/>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Background="{StaticResource SecondaryBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+            <DataGrid x:Name="LogGrid"
+                      ItemsSource="{Binding LogEntries}"
+                      SelectedItem="{Binding SelectedLogEntry}"
+                      AutoGenerateColumns="False"
+                      CanUserResizeColumns="True"
+                      CanUserReorderColumns="True"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      LoadingRow="LogGrid_LoadingRow">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Time"
+                                        Binding="{Binding TimestampDisplay}"
+                                        Width="100"/>
+                    <DataGridTextColumn Header="Level"
+                                        Binding="{Binding LevelDisplay}"
+                                        Width="70"/>
+                    <DataGridTextColumn Header="Message"
+                                        Binding="{Binding Message}"
+                                        Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <Border Grid.Row="3"
+                Background="{StaticResource TertiaryBrush}"
+                CornerRadius="4"
+                Margin="0,8,0,0"
+                Padding="12,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Total:"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,0,4,0"/>
+                <TextBlock Text="{Binding LogCount}"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontWeight="Medium"/>
+
+                <TextBlock Text="Errors:"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="24,0,4,0"/>
+                <TextBlock Text="{Binding ErrorCount}"
+                           Foreground="#E74C3C"
+                           FontWeight="Medium"/>
+
+                <TextBlock Text="Warnings:"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="24,0,4,0"/>
+                <TextBlock Text="{Binding WarningCount}"
+                           Foreground="#F39C12"
+                           FontWeight="Medium"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
