@@ -79,6 +79,8 @@
 
   <Target Name="CopyNativeDll" AfterTargets="Build">
     <Copy SourceFiles="$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(WareHoundSolutionDir)bin\$(Configuration)\WareHound.Sniffer.dll')" />
+    <!-- Since we built using CMake in earlier steps, let's copy the DLL from the CMake output directory as well -->
+    <Copy SourceFiles="$(WareHoundSolutionDir)WareHound.Sniffer\build\$(Configuration)\WareHound.Sniffer.dll" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(WareHoundSolutionDir)WareHound.Sniffer\build\$(Configuration)\WareHound.Sniffer.dll')" />
   </Target>
 
 </Project>

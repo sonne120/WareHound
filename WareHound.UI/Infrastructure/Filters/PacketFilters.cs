@@ -28,7 +28,7 @@ namespace WareHound.UI.Infrastructure.Filters
 
         public bool IsMatch(PacketInfo packet)
         {
-            return !string.IsNullOrEmpty(packet.Protocol) && 
+            return !string.IsNullOrEmpty(packet.Protocol) &&
                    packet.Protocol.ToLowerInvariant().Contains(_protocol);
         }
     }
@@ -44,7 +44,7 @@ namespace WareHound.UI.Infrastructure.Filters
 
         public bool IsMatch(PacketInfo packet)
         {
-            return !string.IsNullOrEmpty(packet.SourceIp) && 
+            return !string.IsNullOrEmpty(packet.SourceIp) &&
                    packet.SourceIp.Contains(_ip);
         }
     }
@@ -60,7 +60,7 @@ namespace WareHound.UI.Infrastructure.Filters
 
         public bool IsMatch(PacketInfo packet)
         {
-            return !string.IsNullOrEmpty(packet.DestIp) && 
+            return !string.IsNullOrEmpty(packet.DestIp) &&
                    packet.DestIp.Contains(_ip);
         }
     }
@@ -111,7 +111,7 @@ namespace WareHound.UI.Infrastructure.Filters
         public bool IsMatch(PacketInfo packet)
         {
             if (string.IsNullOrEmpty(_value)) return true;
-            
+
             return (packet.Protocol?.ToLowerInvariant().Contains(_value) ?? false) ||
                    (packet.SourceIp?.Contains(_value) ?? false) ||
                    (packet.DestIp?.Contains(_value) ?? false) ||

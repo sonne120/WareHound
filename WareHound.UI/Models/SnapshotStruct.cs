@@ -27,7 +27,7 @@ namespace WareHound.UI.Models
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 65536)]
         public byte[] RawData;
     }
-    
+
     [StructLayout(LayoutKind.Sequential, Pack = 2, CharSet = CharSet.Ansi)]
     public struct SnapshotHeader
     {
@@ -45,12 +45,12 @@ namespace WareHound.UI.Models
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 22)]
         public string DestMac;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 22)]
-        public string HostName;      
-        public uint CaptureLen;       
-        public uint OriginalLen;     
-        public ulong TimestampSec;   
-        public uint TimestampUsec;  
-   
+        public string HostName;
+        public uint CaptureLen;
+        public uint OriginalLen;
+        public ulong TimestampSec;
+        public uint TimestampUsec;
+
         public SnapshotStruct ToSnapshot(byte[]? rawData)
         {
             return new SnapshotStruct

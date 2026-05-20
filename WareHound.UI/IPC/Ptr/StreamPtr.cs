@@ -58,7 +58,7 @@ namespace WareHound.UI.IPC.Ptr
                 _isInitialized = true;
             }
         }
-       
+
         public static void Reset()
         {
             lock (_sync)
@@ -66,8 +66,8 @@ namespace WareHound.UI.IPC.Ptr
                 if (_workerThread is { IsAlive: true })
                 {
                     _logger?.LogDebug("[StreamPtr] Waiting for worker thread to terminate...");
-                    _workerThread.Join(2000); 
-                    
+                    _workerThread.Join(2000);
+
                     if (_workerThread.IsAlive)
                     {
                         _logger?.LogDebug("[StreamPtr] Worker thread did not terminate in time");
@@ -77,7 +77,7 @@ namespace WareHound.UI.IPC.Ptr
                         _logger?.LogDebug("[StreamPtr] Worker thread terminated successfully");
                     }
                 }
-                
+
                 _workerThread = null;
                 _isInitialized = false;
                 _activeDevice = -1;

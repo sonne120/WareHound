@@ -17,12 +17,12 @@ public class StatisticsViewModel : BaseViewModel
     private readonly ISnifferService _snifferService;
     private readonly INativeStatisticsInterop? _nativeStats;
     private readonly IStatisticsChannel _statisticsChannel;
-    
+
     private CaptureStatistics _statistics = new();
     private bool _isCapturing;
     private bool _useNativeStatistics = true;
     private System.Windows.Threading.DispatcherTimer? _refreshTimer;
-    
+
     private readonly ConcurrentDictionary<string, long> _protocolCounts = new();
     private readonly ConcurrentDictionary<string, long> _sourceIpCounts = new();
     private readonly ConcurrentDictionary<string, long> _destIpCounts = new();
@@ -85,10 +85,10 @@ public class StatisticsViewModel : BaseViewModel
 
 
     public bool IsNativeStatsAvailable => _nativeStats != null;
-    
 
-    public string StatsSourceText => _useNativeStatistics 
-        ? "Using C++ Native Statistics (FlowTracker)" 
+
+    public string StatsSourceText => _useNativeStatistics
+        ? "Using C++ Native Statistics (FlowTracker)"
         : "Using C# Managed Statistics";
 
     public bool UseNativeStatistics
@@ -144,7 +144,7 @@ public class StatisticsViewModel : BaseViewModel
 
         _refreshTimer = new System.Windows.Threading.DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(300) // Fast updates
+            Interval = TimeSpan.FromMilliseconds(300)
         };
         _refreshTimer.Tick += (s, e) => RefreshStatistics();
     }
@@ -152,7 +152,7 @@ public class StatisticsViewModel : BaseViewModel
     private void OnCaptureStateChanged(bool isCapturing)
     {
         IsCapturing = isCapturing;
-        
+
         if (isCapturing)
         {
             Statistics.CaptureStartTime = DateTime.Now;
@@ -169,7 +169,7 @@ public class StatisticsViewModel : BaseViewModel
     private void OnPacketCaptured(PacketInfo packet)
     {
         Interlocked.Increment(ref _packetCount);
-        
+
         if (!string.IsNullOrEmpty(packet.Protocol))
         {
             _protocolCounts.AddOrUpdate(packet.Protocol, 1, (_, count) => count + 1);
@@ -205,23 +205,23 @@ public class StatisticsViewModel : BaseViewModel
             _ = RefreshFromManagedAsync();
         }
     }
-    
+
     private async Task RefreshFromManagedAsync()
     {
         if (_isRefreshing) return;
         _isRefreshing = true;
-        
+
         try
         {
             _statsCts?.Cancel();
             _statsCts = new CancellationTokenSource();
             var ct = _statsCts.Token;
-            
-            // Run aggregation on thread pool 
+
+
             var result = await Task.Run(() => ComputeStatisticsParallel(ct), ct);
-            
+
             if (ct.IsCancellationRequested) return;
-            
+
             await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 TotalPackets = result.TotalPackets;
@@ -229,52 +229,52 @@ public class StatisticsViewModel : BaseViewModel
                 CaptureTime = Statistics.Duration.ToString(@"hh\:mm\:ss");
                 UniqueProtocols = result.ProtocolStats.Count;
                 UniqueIPs = result.UniqueIPs;
-                
-                // Use diff-based updates instead of clear/rebuild
+
+
                 UpdateCollectionSimple(
                     ProtocolStats,
                     result.ProtocolStats,
                     p => p.Protocol,
                     (old, @new) => old.PacketCount != @new.PacketCount || Math.Abs(old.Percentage - @new.Percentage) > 0.1);
-                
+
                 UpdateCollectionSimple(
                     TopSourceIPs,
                     result.TopSourceIPs,
                     ip => ip.IP,
                     (old, @new) => old.PacketCount != @new.PacketCount);
-                
+
                 UpdateCollectionSimple(
                     TopDestIPs,
                     result.TopDestIPs,
                     ip => ip.IP,
                     (old, @new) => old.PacketCount != @new.PacketCount);
-                
+
                 UpdateCollectionSimple(
                     TopPorts,
                     result.TopPorts,
                     p => p.Port,
                     (old, @new) => old.PacketCount != @new.PacketCount);
-                
-                // Publish snapshot to channel for CaptureView charts
+
+
                 PublishStatisticsSnapshot();
             });
         }
         catch (OperationCanceledException)
         {
-           
+
         }
         finally
         {
             _isRefreshing = false;
         }
     }
-    
+
     private StatisticsResult ComputeStatisticsParallel(CancellationToken ct)
     {
         var totalPackets = Interlocked.Read(ref _packetCount);
         var divisor = totalPackets > 0 ? totalPackets : 1;
-        
-        // Parallel top protocol
+
+
         var protocolStats = _protocolCounts
             .AsParallel()
             .WithCancellation(ct)
@@ -287,8 +287,8 @@ public class StatisticsViewModel : BaseViewModel
                 Percentage = (double)kvp.Value / divisor * 100
             })
             .ToList();
-        
-        // Parallel top source IPs
+
+
         var topSourceIPs = _sourceIpCounts
             .AsParallel()
             .WithCancellation(ct)
@@ -296,8 +296,8 @@ public class StatisticsViewModel : BaseViewModel
             .Take(5)
             .Select(kvp => new TalkerInfo { IP = kvp.Key, PacketCount = kvp.Value })
             .ToList();
-        
-        // Parallel top destination IPs
+
+
         var topDestIPs = _destIpCounts
             .AsParallel()
             .WithCancellation(ct)
@@ -305,28 +305,28 @@ public class StatisticsViewModel : BaseViewModel
             .Take(5)
             .Select(kvp => new TalkerInfo { IP = kvp.Key, PacketCount = kvp.Value })
             .ToList();
-        
-        // Parallel top ports
+
+
         var topPorts = _destPortCounts
             .AsParallel()
             .WithCancellation(ct)
             .OrderByDescending(x => x.Value)
             .Take(5)
-            .Select(kvp => new PortInfo 
-            { 
-                Port = kvp.Key, 
-                PacketCount = kvp.Value, 
-                ServiceName = GetServiceName(kvp.Key) 
+            .Select(kvp => new PortInfo
+            {
+                Port = kvp.Key,
+                PacketCount = kvp.Value,
+                ServiceName = GetServiceName(kvp.Key)
             })
             .ToList();
-        
-        // Compute unique IPs in parallel
+
+
         var uniqueIPs = _sourceIpCounts.Keys
             .AsParallel()
             .WithCancellation(ct)
             .Union(_destIpCounts.Keys.AsParallel())
             .Count();
-        
+
         return new StatisticsResult
         {
             TotalPackets = totalPackets,
@@ -363,22 +363,22 @@ public class StatisticsViewModel : BaseViewModel
             }
             return;
         }
-        
+
         bool needsUpdate = collection.Count != newItems.Count;
         if (!needsUpdate)
         {
             for (int i = 0; i < collection.Count && !needsUpdate; i++)
             {
-                if (!keySelector(collection[i]).Equals(keySelector(newItems[i])) || 
+                if (!keySelector(collection[i]).Equals(keySelector(newItems[i])) ||
                     hasChanged(collection[i], newItems[i]))
                 {
                     needsUpdate = true;
                 }
             }
         }
-        
-        if (!needsUpdate) return;  
-        
+
+        if (!needsUpdate) return;
+
         for (int i = 0; i < newItems.Count; i++)
         {
             if (i < collection.Count)
@@ -394,7 +394,7 @@ public class StatisticsViewModel : BaseViewModel
                 collection.Add(newItems[i]);
             }
         }
-        
+
         while (collection.Count > newItems.Count)
         {
             collection.RemoveAt(collection.Count - 1);
@@ -417,7 +417,7 @@ public class StatisticsViewModel : BaseViewModel
                 UniqueIPs = stats.Value.UniqueSourceIPs + stats.Value.UniqueDestIPs;
             }
 
-            // Update protocol stats from native using diff-based updates
+
             var protocols = _nativeStats.GetProtocolStats(10);
             var protocolList = protocols.Select(proto => new Models.ProtocolStats
             {
@@ -431,7 +431,7 @@ public class StatisticsViewModel : BaseViewModel
                 p => p.Protocol,
                 (old, @new) => old.PacketCount != @new.PacketCount || Math.Abs(old.Percentage - @new.Percentage) > 0.1);
 
-            // Update top source IPs from native using diff-based updates
+
             var srcIps = _nativeStats.GetTopSourceIPs(5);
             var srcIpList = srcIps.Select(ip => new TalkerInfo { IP = ip.IpAddress, PacketCount = (long)ip.PacketCount }).ToList();
             UpdateCollectionSimple(
@@ -440,7 +440,7 @@ public class StatisticsViewModel : BaseViewModel
                 ip => ip.IP,
                 (old, @new) => old.PacketCount != @new.PacketCount);
 
-            // Update top dest IPs from native using diff-based updates
+
             var dstIps = _nativeStats.GetTopDestIPs(5);
             var dstIpList = dstIps.Select(ip => new TalkerInfo { IP = ip.IpAddress, PacketCount = (long)ip.PacketCount }).ToList();
             UpdateCollectionSimple(
@@ -449,20 +449,20 @@ public class StatisticsViewModel : BaseViewModel
                 ip => ip.IP,
                 (old, @new) => old.PacketCount != @new.PacketCount);
 
-            // Update top ports from native using diff-based updates
+
             var ports = _nativeStats.GetTopPorts(5);
-            var portList = ports.Select(port => new PortInfo 
-            { 
-                Port = port.Port, 
-                PacketCount = (long)port.PacketCount, 
-                ServiceName = port.ServiceName 
+            var portList = ports.Select(port => new PortInfo
+            {
+                Port = port.Port,
+                PacketCount = (long)port.PacketCount,
+                ServiceName = port.ServiceName
             }).ToList();
             UpdateCollectionSimple(
                 TopPorts,
                 portList,
                 p => p.Port,
                 (old, @new) => old.PacketCount != @new.PacketCount);
-        
+
             PublishStatisticsSnapshot();
         }
         catch
@@ -470,31 +470,31 @@ public class StatisticsViewModel : BaseViewModel
             RefreshFromManaged();
         }
     }
-    
-    // Track PPS history for min/max/avg
+
+
     private readonly Queue<double> _ppsHistory = new();
     private double _maxPps;
-    
+
     private void PublishStatisticsSnapshot()
     {
-        // Update PPS history
+
         _ppsHistory.Enqueue(PacketsPerSecond);
         while (_ppsHistory.Count > 60) _ppsHistory.Dequeue();
-        
+
         if (PacketsPerSecond > _maxPps) _maxPps = PacketsPerSecond;
         var avgPps = _ppsHistory.Count > 0 ? _ppsHistory.Average() : 0;
-        
-        // Build top talkers from source IPs
-        var topTalkers = TopSourceIPs.Take(5).Select(t => 
+
+
+        var topTalkers = TopSourceIPs.Take(5).Select(t =>
         {
             var percentage = TotalPackets > 0 ? (double)t.PacketCount / TotalPackets * 100 : 0;
             return new TopTalkerItem(t.IP, t.PacketCount, percentage);
         }).ToList();
-        
-        var captureElapsed = IsCapturing 
-            ? DateTime.Now - Statistics.CaptureStartTime 
+
+        var captureElapsed = IsCapturing
+            ? DateTime.Now - Statistics.CaptureStartTime
             : Statistics.Duration;
-        
+
         var snapshot = new StatisticsSnapshot
         {
             TotalPackets = TotalPackets,
@@ -510,7 +510,7 @@ public class StatisticsViewModel : BaseViewModel
             AveragePps = avgPps,
             MaxPps = _maxPps
         };
-        
+
         _statisticsChannel.Writer.TryWrite(snapshot);
     }
 
@@ -522,19 +522,19 @@ public class StatisticsViewModel : BaseViewModel
     private void ClearStatistics()
     {
         Statistics = new CaptureStatistics { CaptureStartTime = DateTime.Now };
-        
-        // Clear thread-safe collections
+
+
         _protocolCounts.Clear();
         _sourceIpCounts.Clear();
         _destIpCounts.Clear();
         _destPortCounts.Clear();
         Interlocked.Exchange(ref _packetCount, 0);
-        
-        // Clear PPS tracking
+
+
         _ppsHistory.Clear();
         _maxPps = 0;
-        
-        // Clear observable collections
+
+
         ProtocolStats.Clear();
         TopSourceIPs.Clear();
         TopDestIPs.Clear();

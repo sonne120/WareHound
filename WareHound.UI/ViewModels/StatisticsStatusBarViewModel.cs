@@ -211,14 +211,14 @@ namespace WareHound.UI.ViewModels
             int currentPPS = _packetsInLastSecond;
             _packetsInLastSecond = 0;
 
-            // Update properties
+
             CurrentPPS = currentPPS;
             TotalPackets = _totalPacketCount.ToString("N0");
             PacketsPerSecond = currentPPS.ToString("F1");
             TotalDataSize = FormatBytes(_totalBytes);
             CaptureTime = (DateTime.Now - _captureStartTime).ToString(@"hh\:mm\:ss");
 
-            // Chart statistics
+
             var nonZeroData = _packetsData.Where(x => x > 0).ToArray();
             if (nonZeroData.Length > 0)
             {
@@ -231,13 +231,13 @@ namespace WareHound.UI.ViewModels
                 MaxPPS = 0;
             }
 
-            // Update protocols
+
             UpdateProtocolsDisplay();
 
-            // Update top IPs
+
             UpdateTopTalkersDisplay();
 
-            // Update chart
+
             ChartUpdateRequested?.Invoke(this, (double[])_packetsData.Clone());
         }
 
@@ -260,7 +260,7 @@ namespace WareHound.UI.ViewModels
             Protocols.Clear();
             MiniProtocolBars.Clear();
 
-            double miniBarTotalWidth = 120; // Mini bar width in Status Bar
+            double miniBarTotalWidth = 120;
 
             foreach (var proto in sortedProtocols)
             {

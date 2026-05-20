@@ -141,9 +141,7 @@ public class IntToBoolConverter : IValueConverter
     }
 }
 
-/// <summary>
-/// Converts an integer to Visibility (visible if index matches parameter).
-/// </summary>
+
 public class IntToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -159,15 +157,13 @@ public class IntToVisibilityConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>
-/// Converts percentage and container width to actual width (multi-binding).
-/// </summary>
+
 public class PercentageToWidthConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values.Length >= 2 && 
-            values[0] is double percentage && 
+        if (values.Length >= 2 &&
+            values[0] is double percentage &&
             values[1] is double containerWidth)
         {
             return Math.Max(0, (percentage / 100.0) * containerWidth);
@@ -179,9 +175,7 @@ public class PercentageToWidthConverter : IMultiValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>
-/// Converts hex color string (#RRGGBB) to Color.
-/// </summary>
+
 public class StringToColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -204,9 +198,7 @@ public class StringToColorConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
-/// <summary>
-/// Returns true if value is less than parameter (for hiding text when bar is too small).
-/// </summary>
+
 public class LessThanConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -229,7 +221,7 @@ public class ZeroToVisibilityConverter : IValueConverter
         int count = 0;
         if (value is int i) count = i;
         else if (value is long l) count = (int)l;
-        
+
         return count == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 

@@ -9,6 +9,7 @@ using Prism.Commands;
 using Prism.Events;
 using WareHound.UI.Infrastructure.Events;
 using WareHound.UI.Infrastructure.ViewModels;
+using WareHound.UI.Infrastructure.Collections;
 using WareHound.UI.Infrastructure.Filters;
 using WareHound.UI.Models;
 using WareHound.UI.Services;
@@ -26,9 +27,9 @@ namespace WareHound.UI.ViewModels
         private ICollectionView _packetsView;
         private IPacketFilter _currentFilter = new NoOpFilter();
         private CancellationTokenSource? _chartsCts;
-        
+
         private readonly double[] _packetsData = new double[60];
-        
+
         public event EventHandler<double[]>? ChartUpdateRequested;
 
         private NetworkDevice? _selectedDevice;
@@ -44,8 +45,8 @@ namespace WareHound.UI.ViewModels
 
         private CancellationTokenSource? _captureCts;
         private bool _hasPackets;
-        
-        // Stats display properties
+
+
         private string _totalPacketsDisplay = "0";
         private string _packetsPerSecDisplay = "0.0";
         private string _dataVolumeDisplay = "0 B";
@@ -53,20 +54,20 @@ namespace WareHound.UI.ViewModels
         private double _currentPps;
         private double _averagePps;
         private double _maxPps;
-        
-        // Local stats tracking 
+
+
         private System.Windows.Threading.DispatcherTimer? _localStatsTimer;
         private DateTime _captureStartTime = DateTime.Now;
         private long _lastPacketCount;
         private readonly Queue<double> _ppsHistory = new();
         private double _localMaxPps;
         private long _totalBytes;
-        
+
         private ObservableCollection<ProtocolBarItem> _protocolBars = new();
-        
+
         private ObservableCollection<TopTalkerDisplayItem> _topTalkers = new();
 
-        public ObservableCollection<PacketInfo> Packets { get; } = new();
+        public BulkObservableCollection<PacketInfo> Packets { get; } = new();
         public ObservableCollection<NetworkDevice> Devices => _snifferService.Devices;
 
         public bool AutoScroll
@@ -129,70 +130,70 @@ namespace WareHound.UI.ViewModels
         public DelegateCommand<string> CopyCommand { get; }
         public DelegateCommand ToggleStatsPanelCommand { get; }
 
-        // Stats panel expansion
+
         public bool IsStatsPanelExpanded
         {
             get => _isStatsPanelExpanded;
             set => SetProperty(ref _isStatsPanelExpanded, value);
         }
-        
-        // Selected tab index (0=Overview, 1=Protocols, 2=Top IPs)
+
+
         public int SelectedStatsTabIndex
         {
             get => _selectedStatsTabIndex;
             set => SetProperty(ref _selectedStatsTabIndex, value);
         }
-        
-        // Stat card display values
+
+
         public string TotalPacketsDisplay
         {
             get => _totalPacketsDisplay;
             set => SetProperty(ref _totalPacketsDisplay, value);
         }
-        
+
         public string PacketsPerSecDisplay
         {
             get => _packetsPerSecDisplay;
             set => SetProperty(ref _packetsPerSecDisplay, value);
         }
-        
+
         public string DataVolumeDisplay
         {
             get => _dataVolumeDisplay;
             set => SetProperty(ref _dataVolumeDisplay, value);
         }
-        
+
         public string CaptureTimeDisplay
         {
             get => _captureTimeDisplay;
             set => SetProperty(ref _captureTimeDisplay, value);
         }
-        
+
         public double CurrentPps
         {
             get => _currentPps;
             set => SetProperty(ref _currentPps, value);
         }
-        
+
         public double AveragePps
         {
             get => _averagePps;
             set => SetProperty(ref _averagePps, value);
         }
-        
+
         public double MaxPps
         {
             get => _maxPps;
             set => SetProperty(ref _maxPps, value);
         }
-        
-        // Protocol distribution bars
+
+
         public ObservableCollection<ProtocolBarItem> ProtocolBars
         {
             get => _protocolBars;
             set => SetProperty(ref _protocolBars, value);
         }
-        
+
         public ObservableCollection<TopTalkerDisplayItem> TopTalkers
         {
             get => _topTalkers;
@@ -200,7 +201,7 @@ namespace WareHound.UI.ViewModels
         }
 
         public bool HasChartData => _packetsData.Any(v => v > 0) || ProtocolBars.Count > 0;
-        
+
         public StatisticsStatusBarViewModel StatisticsStatusBarViewModel { get; } = new StatisticsStatusBarViewModel();
 
         public CaptureViewModel(ISnifferService snifferService, IPacketCollectionService collectionService, IEventAggregator eventAggregator, ILoggerService logger, IStatisticsChannel statisticsChannel)
@@ -210,9 +211,9 @@ namespace WareHound.UI.ViewModels
             _collectionService = collectionService ?? throw new ArgumentNullException(nameof(collectionService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _statisticsChannel = statisticsChannel ?? throw new ArgumentNullException(nameof(statisticsChannel));
-            
+
             Array.Clear(_packetsData, 0, _packetsData.Length);
-            
+
             _packetsView = CollectionViewSource.GetDefaultView(Packets);
             _packetsView.Filter = FilterPacket;
 
@@ -231,17 +232,17 @@ namespace WareHound.UI.ViewModels
             SaveToDashboardCommand = new DelegateCommand(SaveToDashboard, () => Packets.Count > 0);
             CopyCommand = new DelegateCommand<string>(Copy);
             ToggleStatsPanelCommand = new DelegateCommand(() => IsStatsPanelExpanded = !IsStatsPanelExpanded);
-            
-            
+
+
             _chartsCts = new CancellationTokenSource();
             _ = ConsumeStatisticsAsync(_chartsCts.Token);
-            
+
             _localStatsTimer = new System.Windows.Threading.DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(300)
             };
             _localStatsTimer.Tick += (s, e) => ComputeLocalStats();
-            
+
             if (_snifferService.IsCapturing)
             {
                OnCaptureStateChanged(true);
@@ -249,7 +250,7 @@ namespace WareHound.UI.ViewModels
 
             _snifferService.ErrorOccurred += OnError;
 
-        
+
             if (Devices.Count > 0 && SelectedDevice == null)
                 SelectedDevice = Devices[0];
         }
@@ -263,7 +264,7 @@ namespace WareHound.UI.ViewModels
                 {
                     Packets.Add(packet);
                 }
-                
+
                 if (Packets.Count > 0)
                 {
                     _hasPackets = true;
@@ -334,8 +335,8 @@ namespace WareHound.UI.ViewModels
                 {
                    _captureCts?.Cancel();
                    IsCapturing = false;
-                   
-                   // Stop local stats timer
+
+
                    _localStatsTimer?.Stop();
                 }
             }
@@ -345,18 +346,12 @@ namespace WareHound.UI.ViewModels
         {
             if (IsCapturing)
             {
-                // 1. Cancel the packet consumer task (background loop)
                 _captureCts?.Cancel();
-                
-                // 2. Stop the underlying sniffer service (closes pipes, native threads)
                 _snifferService.StopCapture();
-                
-                // 3. Update UI state (enables/disables buttons)
                 IsCapturing = false;
             }
             else
             {
-                // 1. Validation: Ensure a device is selected
                 if (SelectedDevice == null)
                 {
                     MessageBox.Show("Please select a network interface.", "WareHound",
@@ -364,21 +359,17 @@ namespace WareHound.UI.ViewModels
                     return;
                 }
 
-                // 2. Start the service. 
                 _snifferService.StartCapture(SelectedDevice.Index);
-             
+
                 if (_snifferService.IsCapturing)
                 {
                     IsCapturing = true;
-                    
                     _captureCts = new CancellationTokenSource();
-                    
-                    // 5. Fire-and-forget the packet consumer loop                  
                     _ = ConsumePacketsAsync(_captureCts.Token);
                 }
                 else
-                {                 
-                    IsCapturing = false; 
+                {
+                    IsCapturing = false;
                 }
             }
         }
@@ -389,7 +380,7 @@ namespace WareHound.UI.ViewModels
             SelectedPacket = null;
             _hasPackets = false;
             SaveToDashboardCommand.RaiseCanExecuteChanged();
-            
+
             StatisticsStatusBarViewModel.Reset();
         }
 
@@ -439,16 +430,17 @@ namespace WareHound.UI.ViewModels
 
         private async Task FlushBatchToUIAsync(IList<PacketInfo> batch)
         {
-            var packetsToAdd = batch.ToArray(); 
+            var packetsToAdd = batch.ToArray();
 
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
+                Packets.AddRange(packetsToAdd);
+
                 foreach (var p in packetsToAdd)
                 {
-                    Packets.Add(p);               
                     Publish<PacketCapturedEvent, PacketInfo>(p);
-                    
-                    // Update the statistics status bar
+
+
                     StatisticsStatusBarViewModel.AddPacket(
                         (int)p.CaptureLen,
                         p.Protocol ?? "Other",
@@ -483,20 +475,20 @@ namespace WareHound.UI.ViewModels
 
             var p = SelectedPacket;
 
-            // Frame info
+
             var frame = new TreeNode($"▶ Packet #{p.Number}: {p.Protocol}");
             frame.AddChild($"    Capture Time: {p.CaptureTime:yyyy-MM-dd HH:mm:ss.fff}");
             frame.AddChild($"    Packet ID: {p.Id}");
             PacketDetails.Add(frame);
 
-            // Ethernet
+
             var eth = new TreeNode($"▶ Ethernet II, Src: {p.SourceMac}, Dst: {p.DestMac}");
             eth.AddChild($"    Source MAC: {p.SourceMac}");
             eth.AddChild($"    Destination MAC: {p.DestMac}");
             eth.AddChild($"    Type: IPv4 (0x0800)");
             PacketDetails.Add(eth);
 
-            // IP
+
             var ip = new TreeNode($"▶ Internet Protocol Version 4, Src: {p.SourceIp}, Dst: {p.DestIp}");
             ip.AddChild($"    Version: 4");
             ip.AddChild($"    Source Address: {p.SourceIp}");
@@ -504,7 +496,7 @@ namespace WareHound.UI.ViewModels
             ip.AddChild($"    Protocol: {p.Protocol}");
             PacketDetails.Add(ip);
 
-            // Protocol specific
+
             var proto = new TreeNode($"▶ {p.Protocol}, Src Port: {p.SourcePort}, Dst Port: {p.DestPort}");
             proto.AddChild($"    Source Port: {p.SourcePort}");
             proto.AddChild($"    Destination Port: {p.DestPort}");
@@ -512,7 +504,7 @@ namespace WareHound.UI.ViewModels
                 proto.AddChild($"    Host: {p.HostName}");
             PacketDetails.Add(proto);
 
-            // Generate hex dump
+
             PacketHexDump = GenerateHexDump(p);
         }
 
@@ -526,35 +518,35 @@ namespace WareHound.UI.ViewModels
         {
             var bytes = new List<byte>();
 
-            // Ethernet Header (14 bytes)
+
             bytes.AddRange(ParseMacAddress(p.DestMac));
             bytes.AddRange(ParseMacAddress(p.SourceMac));
-            bytes.Add(0x08); bytes.Add(0x00); // IPv4
+            bytes.Add(0x08); bytes.Add(0x00);
 
-            // IP Header (20 bytes)
-            bytes.Add(0x45); // Version + IHL
-            bytes.Add(0x00); // DSCP/ECN
-            bytes.Add(0x00); bytes.Add(0x40); // Total Length
+
+            bytes.Add(0x45);
+            bytes.Add(0x00);
+            bytes.Add(0x00); bytes.Add(0x40);
             bytes.Add((byte)((p.Id >> 8) & 0xFF));
             bytes.Add((byte)(p.Id & 0xFF));
-            bytes.Add(0x40); bytes.Add(0x00); // Flags + Fragment
-            bytes.Add(0x40); // TTL
+            bytes.Add(0x40); bytes.Add(0x00);
+            bytes.Add(0x40);
             bytes.Add(GetProtocolNumber(p.Protocol));
-            bytes.Add(0x00); bytes.Add(0x00); // Checksum
+            bytes.Add(0x00); bytes.Add(0x00);
             bytes.AddRange(ParseIpAddress(p.SourceIp));
             bytes.AddRange(ParseIpAddress(p.DestIp));
 
-            // Transport Header (8 bytes)
+
             bytes.Add((byte)((p.SourcePort >> 8) & 0xFF));
             bytes.Add((byte)(p.SourcePort & 0xFF));
             bytes.Add((byte)((p.DestPort >> 8) & 0xFF));
             bytes.Add((byte)(p.DestPort & 0xFF));
             bytes.AddRange(new byte[] { 0x00, 0x00, 0x00, 0x00 });
 
-            // Payload
+
             bytes.AddRange(Encoding.ASCII.GetBytes($"Packet #{p.Number}"));
 
-            // Pad to 64 bytes
+
             while (bytes.Count < 64) bytes.Add(0x00);
 
             return bytes.ToArray();
@@ -568,19 +560,19 @@ namespace WareHound.UI.ViewModels
             {
                 sb.Append($"{i:X8}  ");
 
-                // First 8 hex bytes
+
                 for (int j = 0; j < 8; j++)
                     sb.Append(i + j < bytes.Length ? $"{bytes[i + j]:X2} " : "   ");
 
                 sb.Append(" ");
 
-                // Second 8 hex bytes
+
                 for (int j = 8; j < 16; j++)
                     sb.Append(i + j < bytes.Length ? $"{bytes[i + j]:X2} " : "   ");
 
                 sb.Append(" ");
 
-                // ASCII
+
                 for (int j = 0; j < 16 && i + j < bytes.Length; j++)
                 {
                     byte b = bytes[i + j];
@@ -634,61 +626,58 @@ namespace WareHound.UI.ViewModels
         };
 
         #region LiveCharts Chart Methods
-        
-        /// <summary>
-        /// Computes local stats from the Packets collection when StatisticsViewModel is not active.
-        /// This ensures charts work even without navigating to Statistics view.
-        /// </summary>
+
+
         private void ComputeLocalStats()
         {
             if (!IsCapturing || Packets.Count == 0) return;
-            
+
             var currentCount = Packets.Count;
-            var pps = (currentCount - _lastPacketCount) * 2.0; // *2 because timer is 500ms
+            var pps = (currentCount - _lastPacketCount) * 2.0;
             _lastPacketCount = currentCount;
-            
-            // Update PPS history
+
+
             _ppsHistory.Enqueue(pps);
             while (_ppsHistory.Count > 60) _ppsHistory.Dequeue();
-            
+
             if (pps > _localMaxPps) _localMaxPps = pps;
             var avgPps = _ppsHistory.Count > 0 ? _ppsHistory.Average() : 0;
-            
-            // Capture elapsed time
+
+
             var elapsed = DateTime.Now - _captureStartTime;
-            
-            // Estimate total bytes from packets (sum of CaptureLen)
+
+
             _totalBytes = Packets.Sum(p => (long)p.CaptureLen);
-            
-            // Compute protocol distribution
+
+
             var protocolGroups = Packets
                 .GroupBy(p => p.Protocol ?? "Unknown")
                 .OrderByDescending(g => g.Count())
                 .Take(5)
                 .ToList();
-            
+
             var totalPackets = Packets.Count;
             var protocolStats = protocolGroups.Select(g => new ProtocolStatItem(
-                g.Key, 
-                g.Count(), 
+                g.Key,
+                g.Count(),
                 totalPackets > 0 ? (double)g.Count() / totalPackets * 100 : 0
             )).ToList();
-            
-            // Compute top talkers (source IPs)
+
+
             var sourceIpGroups = Packets
                 .Where(p => !string.IsNullOrEmpty(p.SourceIp))
                 .GroupBy(p => p.SourceIp!)
                 .OrderByDescending(g => g.Count())
                 .Take(5)
                 .ToList();
-            
+
             var topTalkers = sourceIpGroups.Select(g => new TopTalkerItem(
                 g.Key,
                 g.Count(),
                 totalPackets > 0 ? (double)g.Count() / totalPackets * 100 : 0
             )).ToList();
-            
-            // Create snapshot and update UI
+
+
             var snapshot = new StatisticsSnapshot
             {
                 TotalPackets = totalPackets,
@@ -704,7 +693,7 @@ namespace WareHound.UI.ViewModels
                 AveragePps = avgPps,
                 MaxPps = _localMaxPps
             };
-            
+
             UpdateStatCards(snapshot);
             UpdateProtocolBars(snapshot);
             UpdateTopTalkers(snapshot);
@@ -730,7 +719,7 @@ namespace WareHound.UI.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Expected when disposing
+
             }
             catch (Exception ex)
             {
@@ -740,24 +729,24 @@ namespace WareHound.UI.ViewModels
 
         private void UpdateStatCards(StatisticsSnapshot snapshot)
         {
-            // Format total packets with thousand separators
+
             TotalPacketsDisplay = snapshot.TotalPackets.ToString("N0");
-            
-            // Format packets per second
+
+
             PacketsPerSecDisplay = snapshot.PacketsPerSecond.ToString("F1");
-            
-            // Format data volume
+
+
             DataVolumeDisplay = FormatBytes(snapshot.TotalBytes);
-            
-            // Format capture time
+
+
             CaptureTimeDisplay = snapshot.CaptureElapsed.ToString(@"hh\:mm\:ss");
-            
-            // PPS indicators
+
+
             CurrentPps = snapshot.CurrentPps;
             AveragePps = snapshot.AveragePps;
             MaxPps = snapshot.MaxPps;
         }
-        
+
         private static string FormatBytes(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };
@@ -773,19 +762,19 @@ namespace WareHound.UI.ViewModels
 
         private void UpdateProtocolBars(StatisticsSnapshot snapshot)
         {
-            // Define colors for protocols (matching the mockup)
+
             var colors = new[]
             {
-                "#3B82F6", // TLS - Blue
-                "#10B981", // QUIC - Green  
-                "#F59E0B", // HTTP - Orange
-                "#8B5CF6", // DNS - Purple
-                "#6B7280", // Other - Gray
-                "#EF4444", // Red
-                "#06B6D4", // Cyan
-                "#EC4899", // Pink
-                "#84CC16", // Lime
-                "#F97316"  // Orange-red
+                "#3B82F6",
+                "#10B981",
+                "#F59E0B",
+                "#8B5CF6",
+                "#6B7280",
+                "#EF4444",
+                "#06B6D4",
+                "#EC4899",
+                "#84CC16",
+                "#F97316"
             };
 
             var bars = snapshot.ProtocolStats.Take(5).Select((stat, i) => new ProtocolBarItem
@@ -819,14 +808,14 @@ namespace WareHound.UI.ViewModels
 
         private void UpdatePacketRateChart(StatisticsSnapshot snapshot)
         {
-            // Shift data left
+
             for (int i = 0; i < _packetsData.Length - 1; i++)
                 _packetsData[i] = _packetsData[i + 1];
-            
-            // Add new value at the end
+
+
             _packetsData[^1] = snapshot.PacketsPerSecond;
-            
-            // Request chart update via event (to be handled by View)
+
+
             ChartUpdateRequested?.Invoke(this, (double[])_packetsData.Clone());
         }
 

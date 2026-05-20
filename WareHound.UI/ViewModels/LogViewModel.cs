@@ -49,7 +49,7 @@ namespace WareHound.UI.ViewModels
         public LogViewModel(ILoggerService loggerService)
         {
             _loggerService = loggerService;
-            
+
             ClearLogsCommand = new DelegateCommand(ClearLogs);
             CopySelectedCommand = new DelegateCommand(CopySelected, () => SelectedLogEntry != null)
                 .ObservesProperty(() => SelectedLogEntry);
@@ -94,10 +94,10 @@ namespace WareHound.UI.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                var lines = LogEntries.Select(e => 
-                    $"[{e.TimestampDisplay}] [{e.LevelDisplay}] {e.Message}" + 
+                var lines = LogEntries.Select(e =>
+                    $"[{e.TimestampDisplay}] [{e.LevelDisplay}] {e.Message}" +
                     (string.IsNullOrEmpty(e.Exception) ? "" : $"\n  {e.Exception}"));
-                
+
                 System.IO.File.WriteAllLines(dialog.FileName, lines);
                 _loggerService.Log($"Logs exported to {dialog.FileName}");
             }

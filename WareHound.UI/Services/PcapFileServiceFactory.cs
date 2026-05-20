@@ -7,7 +7,7 @@ public class PcapFileServiceFactory
 {
     private readonly NativePcapFileService _nativeService;
     private readonly SharpPcapFileService _sharpPcapService;
-    private PcapBackend _currentBackend = PcapBackend.SharpPcap; 
+    private PcapBackend _currentBackend = PcapBackend.SharpPcap;
 
     public PcapFileServiceFactory(
         NativePcapFileService nativeService,
@@ -16,7 +16,7 @@ public class PcapFileServiceFactory
     {
         _nativeService = nativeService;
         _sharpPcapService = sharpPcapService;
-        
+
         eventAggregator.GetEvent<PcapBackendChangedEvent>().Subscribe(OnBackendChanged);
     }
 

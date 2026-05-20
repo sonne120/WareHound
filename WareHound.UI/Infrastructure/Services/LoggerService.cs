@@ -17,7 +17,7 @@ namespace WareHound.UI.Infrastructure.Services
     public class DebugLoggerService : ILoggerService
     {
         private const int MaxLogEntries = 5000;
-        
+
         public ObservableCollection<LogEntry> LogEntries { get; } = new();
 
         public void Log(string message)

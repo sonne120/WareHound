@@ -26,8 +26,8 @@ namespace WareHound.UI.Services
         private static extern bool SetEvent(SafeWaitHandle hEvent);
 
         private const string PipeName = "testpipe";
-        private const string EventName = "Global\\sniffer";
-        private const int PipeConnectionTimeoutMs = 5000;
+        private const string EventName = "Local\\sniffer";
+        private const int PipeConnectionTimeoutMs = 8000;
         private const int PipeServerStartDelayMs = 500;
         private const int DummyPacketId = 1000;
         private const int ChannelCapacity = 10000;
@@ -37,10 +37,11 @@ namespace WareHound.UI.Services
         private Thread? _pipeReaderThread;
         private CancellationTokenSource? _cts;
         private volatile bool _isCapturing;
+        private volatile bool _isStartingCapture;
         private int _packetNumber;
         private bool _disposed;
         private int _selectedDeviceIndex = 1;
-        
+
         private Channel<PacketInfo>? _packetChannel;
         private bool _isLoadingDevices;
 
@@ -78,7 +79,7 @@ namespace WareHound.UI.Services
             {
                 _isLoadingDevices = true;
                 DevicesLoadingStarted?.Invoke();
-                
+
                 _logger.LogDebug("Loading network devices...");
                 Devices.Clear();
 
@@ -91,7 +92,7 @@ namespace WareHound.UI.Services
                     Devices.Add(device);
                     _logger.LogDebug($"Device {i}: {device.DisplayName}");
                 }
-                
+
                 DevicesLoaded?.Invoke();
             }
             catch (Exception ex)
@@ -127,7 +128,7 @@ namespace WareHound.UI.Services
             {
                 _isLoadingDevices = true;
                 DevicesLoadingStarted?.Invoke();
-                
+
                 _logger.LogDebug("Loading network devices asynchronously...");
 
                 using var timeoutCts = new CancellationTokenSource(timeout);
@@ -145,7 +146,7 @@ namespace WareHound.UI.Services
 
                 _logger.Log($"Found {deviceNames.Count} network devices");
 
-                // Update the collection on the UI thread
+
                 System.Windows.Application.Current?.Dispatcher.Invoke(() =>
                 {
                     Devices.Clear();
@@ -184,12 +185,13 @@ namespace WareHound.UI.Services
 
         public void StartCapture(int deviceIndex)
         {
-            if (_isCapturing)
+            if (_isCapturing || _isStartingCapture)
             {
-                _logger.LogDebug("StartCapture called but already capturing");
+                _logger.LogDebug("StartCapture called but already capturing or starting");
                 return;
             }
 
+            _isStartingCapture = true;
             try
             {
                 _logger.Log($"Starting capture on device {deviceIndex}");
@@ -201,6 +203,10 @@ namespace WareHound.UI.Services
                 _logger.LogError("Failed to start capture", ex);
                 ErrorOccurred?.Invoke($"Failed to start capture: {ex.Message}");
                 StopCapture();
+            }
+            finally
+            {
+                _isStartingCapture = false;
             }
         }
 
@@ -267,7 +273,7 @@ namespace WareHound.UI.Services
             _packetNumber = 0;
             _cts = new CancellationTokenSource();
 
-            // Create bounded channel for async packet streaming
+
             _packetChannel = Channel.CreateBounded<PacketInfo>(new BoundedChannelOptions(ChannelCapacity)
             {
                 FullMode = BoundedChannelFullMode.DropOldest,
@@ -275,7 +281,7 @@ namespace WareHound.UI.Services
                 SingleReader = false
             });
 
-            // Create Windows Event for synchronization
+
             _eventHandle = CreateEventW(IntPtr.Zero, true, false, EventName);
             if (_eventHandle.IsInvalid)
             {
@@ -283,17 +289,16 @@ namespace WareHound.UI.Services
                 throw new InvalidOperationException($"Failed to create synchronization event. Win32 Error: {error}");
             }
 
-            Task.Run(() => _snifferInterop.Initialize(deviceIndex));
-
+            _snifferInterop.Initialize(deviceIndex);
             Thread.Sleep(PipeServerStartDelayMs);
 
-            _pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
+            //SetEvent(_eventHandle);
+
+            _pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.In);
             _pipeClient.Connect(PipeConnectionTimeoutMs);
 
-            // Signal event to start capture
-            SetEvent(_eventHandle);
-
             _snifferInterop.SelectDevice(deviceIndex);
+            _snifferInterop.Start();
 
             _isCapturing = true;
 
@@ -303,6 +308,8 @@ namespace WareHound.UI.Services
                 Name = "PacketReaderThread"
             };
             _pipeReaderThread.Start();
+
+
         }
 
         private void CleanupCapture()
@@ -313,6 +320,7 @@ namespace WareHound.UI.Services
             _packetChannel?.Writer.TryComplete();
 
             _snifferInterop.Stop();
+            _snifferInterop.Reset();
 
             _pipeClient?.Close();
             _pipeClient?.Dispose();
@@ -327,10 +335,10 @@ namespace WareHound.UI.Services
 
         private void PipeReaderLoop()
         {
-            int structSize = Marshal.SizeOf<SnapshotStruct>();
-            byte[] buffer = new byte[structSize];
-            
-            _logger.LogDebug($"PipeReaderLoop started, struct size = {structSize}");
+            int headerSize = Marshal.SizeOf<SnapshotHeader>();
+            byte[] headerBuffer = new byte[headerSize];
+
+            _logger.LogDebug($"PipeReaderLoop started, header size = {headerSize}");
 
             while (_isCapturing && !(_cts?.IsCancellationRequested ?? true))
             {
@@ -342,16 +350,19 @@ namespace WareHound.UI.Services
                         break;
                     }
 
-                    int bytesRead = _pipeClient.Read(buffer, 0, structSize);
+                    int bytesReadTotal = 0;
+                    while (bytesReadTotal < headerSize)
+                    {
+                        int read = _pipeClient.Read(headerBuffer, bytesReadTotal, headerSize - bytesReadTotal);
+                        if (read == 0)
+                        {
+                            _logger.LogDebug("Pipe EOF — server closed connection");
+                            return;
+                        }
+                        bytesReadTotal += read;
+                    }
 
-                    if (bytesRead == structSize)
-                    {
-                        ProcessPacketBuffer(buffer);
-                    }
-                    else if (bytesRead > 0)
-                    {
-                        _logger.LogDebug($"Incomplete read: {bytesRead} of {structSize} bytes");
-                    }
+                    ProcessPacketBuffer(headerBuffer);
                 }
                 catch (Exception ex)
                 {
@@ -362,30 +373,69 @@ namespace WareHound.UI.Services
 
             _logger.LogDebug("PipeReaderLoop ended");
         }
-        
+
         private void ProcessPacketBuffer(byte[] buffer)
         {
             GCHandle handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
             try
             {
-                var snapshot = Marshal.PtrToStructure<SnapshotStruct>(handle.AddrOfPinnedObject());
+                var header = Marshal.PtrToStructure<SnapshotHeader>(handle.AddrOfPinnedObject());
 
-                if (snapshot.Id == DummyPacketId)
+                if (header.Id == DummyPacketId)
+                {
+                    DrainPayload(header.CaptureLen);
                     return;
+                }
+
+                if (header.CaptureLen > 65536)
+                {
+                    _logger.LogWarning($"[PipeReader] Invalid frame capture length: {header.CaptureLen}. Skipping.");
+                    return;
+                }
+
+                byte[]? rawData = null;
+                if (header.CaptureLen > 0)
+                {
+                    rawData = new byte[header.CaptureLen];
+                    int totalRead = 0;
+                    while (totalRead < header.CaptureLen)
+                    {
+                        if (_pipeClient == null) break;
+                        int read = _pipeClient.Read(rawData, totalRead, (int)header.CaptureLen - totalRead);
+                        if (read == 0) break;
+                        totalRead += read;
+                    }
+                }
+
+                var snapshot = header.ToSnapshot(rawData);
 
                 _packetNumber++;
                 var packet = PacketInfo.FromSnapshot(snapshot, _packetNumber);
-                
+
                 var written = _packetChannel?.Writer.TryWrite(packet) ?? false;
-                
+
                 if (_packetNumber <= 5 || _packetNumber % 100 == 0)
                 {
-                    _logger.LogDebug($"Packet #{_packetNumber} written to channel: {written}");
+                    _logger.LogDebug($"Packet #{_packetNumber} {packet.Protocol} {packet.SourceIp}:{packet.SourcePort} -> {packet.DestIp}:{packet.DestPort} (written: {written})");
                 }
             }
             finally
             {
                 handle.Free();
+            }
+        }
+
+        private void DrainPayload(uint length)
+        {
+            if (length == 0 || _pipeClient == null) return;
+            byte[] sink = new byte[Math.Min(length, 4096u)];
+            uint remaining = length;
+            while (remaining > 0)
+            {
+                int toRead = (int)Math.Min(remaining, (uint)sink.Length);
+                int read = _pipeClient.Read(sink, 0, toRead);
+                if (read == 0) break;
+                remaining -= (uint)read;
             }
         }
 
@@ -409,11 +459,11 @@ namespace WareHound.UI.Services
 
             _logger.LogDebug("GetPacketBatchesAsync: Starting to read packets");
             var reader = channel.Reader;
-            
+
             while (await reader.WaitToReadAsync(ct).ConfigureAwait(false))
             {
                 var batch = new List<PacketInfo>();
-                
+
                 while (batch.Count < 100 && reader.TryRead(out var packet))
                 {
                     batch.Add(packet);
@@ -424,7 +474,7 @@ namespace WareHound.UI.Services
                     yield return batch;
                 }
             }
-            
+
             _logger.LogDebug("GetPacketBatchesAsync: Stream completed");
         }
 

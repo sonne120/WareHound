@@ -17,9 +17,9 @@ namespace WareHound.UI.Services
         void SelectDevice(int deviceIndex);
         void StartCapture();
         void StartCapture(int deviceIndex);
-        void StopCapture(); 
+        void StopCapture();
         IntPtr GetSnifferHandle();
-       
+
         event Action<string>? ErrorOccurred;
         event Action? DevicesLoaded;
         event Action? DevicesLoadingStarted;

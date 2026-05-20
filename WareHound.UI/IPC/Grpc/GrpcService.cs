@@ -19,17 +19,17 @@ namespace WareHound.UI.IPC.Grpc
         private readonly ILoggerService _logger;
         private readonly AsyncConcurrencyQueue<SnapshotStruct> _snapshotsQueue;
         private readonly IEventAggregator _eventAggregator;
-        
+
         private GrpcChannel? _channel;
         private StreamingDates.StreamingDatesClient? _streamDataClient;
         private AsyncClientStreamingCall<streamingRequest, streamingReply>? _clientStreamingCall;
-        
+
         private volatile bool _isEnabled = false;
         private string _serverAddress = "https://localhost:5001";
         private readonly object _connectionLock = new();
 
         public GrpcService(
-            IBackgroundJobs<SnapshotStruct> backgroundJobs, 
+            IBackgroundJobs<SnapshotStruct> backgroundJobs,
             IMapper mapper,
             IEventAggregator eventAggregator,
             ILoggerService logger)
@@ -39,7 +39,7 @@ namespace WareHound.UI.IPC.Grpc
             _eventAggregator = eventAggregator;
             _logger = logger;
 
-            // Subscribe to settings changes
+
             _eventAggregator.GetEvent<GrpcEnabledChangedEvent>().Subscribe(OnGrpcSettingsChanged);
         }
 
@@ -68,7 +68,7 @@ namespace WareHound.UI.IPC.Grpc
             {
                 var handler = new HttpClientHandler
                 {
-                    ServerCertificateCustomValidationCallback = 
+                    ServerCertificateCustomValidationCallback =
                         HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
                 };
 
@@ -79,7 +79,7 @@ namespace WareHound.UI.IPC.Grpc
 
                 _streamDataClient = new StreamingDates.StreamingDatesClient(_channel);
                 _clientStreamingCall = _streamDataClient.GetStreamingData();
-                
+
                 _logger.Log($"[GrpcService] Connected to {_serverAddress}");
             }
             catch (Exception ex)
@@ -125,7 +125,7 @@ namespace WareHound.UI.IPC.Grpc
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
-            // Don't connect on start - wait for settings toggle
+
             return base.StartAsync(cancellationToken);
         }
 
@@ -142,7 +142,7 @@ namespace WareHound.UI.IPC.Grpc
                 {
                     await foreach (var data in _snapshotsQueue.WithCancellation(cancellationToken))
                     {
-                        // Only send if enabled and connected
+
                         if (_isEnabled && _clientStreamingCall != null)
                         {
                             try
@@ -153,7 +153,7 @@ namespace WareHound.UI.IPC.Grpc
                             catch (RpcException ex)
                             {
                                 _logger.LogError($"[GrpcService] Send error: {ex.Status}", ex);
-                                // Could attempt reconnection here
+
                             }
                         }
 

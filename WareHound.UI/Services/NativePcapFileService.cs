@@ -8,7 +8,7 @@ namespace WareHound.UI.Services;
 public class NativePcapFileService : IPcapFileService
 {
     private const string DllName = "WareHound.Sniffer.dll";
-    
+
     public string BackendName => "Native (C++ pcap)";
 
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
@@ -32,11 +32,11 @@ public class NativePcapFileService : IPcapFileService
         return ext == ".pcap" || ext == ".cap";
     }
 
-    public async Task SaveAsync(string filePath, IEnumerable<PacketInfo> packets, 
+    public async Task SaveAsync(string filePath, IEnumerable<PacketInfo> packets,
         IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
         var packetList = packets.Where(p => p.RawData != null && p.CaptureLen > 0).ToList();
-        
+
         if (packetList.Count == 0)
         {
             throw new InvalidOperationException("No packets with raw data to save. Packets must have been captured (not just metadata).");
@@ -52,16 +52,16 @@ public class NativePcapFileService : IPcapFileService
                 for (int i = 0; i < packetList.Count; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     var snapshot = packetList[i].ToSnapshot();
                     IntPtr ptr = IntPtr.Add(buffer, i * structSize);
                     Marshal.StructureToPtr(snapshot, ptr, false);
-                    
+
                     progress?.Report((i + 1) * 100 / packetList.Count);
                 }
 
                 bool success = Sniffer_SavePcap(filePath, buffer, packetList.Count);
-                
+
                 if (!success)
                 {
                     throw new IOException($"Failed to save PCAP file: {filePath}");
@@ -74,7 +74,7 @@ public class NativePcapFileService : IPcapFileService
         }, cancellationToken);
     }
 
-    public async Task<IList<PacketInfo>> LoadAsync(string filePath, 
+    public async Task<IList<PacketInfo>> LoadAsync(string filePath,
         IProgress<int>? progress = null, CancellationToken cancellationToken = default)
     {
         return await Task.Run(() =>
@@ -95,12 +95,12 @@ public class NativePcapFileService : IPcapFileService
                 for (int i = 0; i < packetCount; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    
+
                     IntPtr ptr = IntPtr.Add(dataPtr, i * structSize);
                     var snapshot = Marshal.PtrToStructure<SnapshotStruct>(ptr);
                     var packet = PacketInfo.FromSnapshot(snapshot, i + 1);
                     packets.Add(packet);
-                    
+
                     progress?.Report((i + 1) * 100 / packetCount);
                 }
 

@@ -16,7 +16,7 @@ public class LogEntry
     public string? Exception { get; set; }
 
     public string TimestampDisplay => Timestamp.ToString("HH:mm:ss.fff");
-    
+
     public string LevelDisplay => Level switch
     {
         LogLevel.Debug => "DEBUG",

@@ -12,9 +12,9 @@ public sealed record StatisticsSnapshot
     public required int UniqueProtocols { get; init; }
     public required int UniqueIps { get; init; }
     public TimeSpan CaptureElapsed { get; init; } = TimeSpan.Zero;
-    
+
     public IReadOnlyList<TopTalkerItem> TopTalkers { get; init; } = Array.Empty<TopTalkerItem>();
-    
+
     public double CurrentPps { get; init; }
     public double AveragePps { get; init; }
     public double MaxPps { get; init; }

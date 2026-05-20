@@ -33,7 +33,7 @@ public class SharpPcapFileService : IPcapFileService
             {
                 File.Delete(filePath);
             }
-            
+
             using var writer = new CaptureFileWriterDevice(filePath);
             writer.Open(LinkLayers.Ethernet);
 
@@ -46,9 +46,9 @@ public class SharpPcapFileService : IPcapFileService
 
                 var timestamp = new PosixTimeval(pkt.CaptureTime);
                 var rawCapture = new RawCapture(LinkLayers.Ethernet, timestamp, pkt.RawData);
-                
+
                 writer.Write(rawCapture);
-                
+
                 progress?.Report((i + 1) * 100 / packetList.Count);
             }
 
@@ -73,12 +73,12 @@ public class SharpPcapFileService : IPcapFileService
             while ((status = reader.GetNextPacket(out e)) == GetPacketStatus.PacketRead)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
                 packetNumber++;
                 var rawCapture = e.GetPacket();
                 var packet = ParsePacket(rawCapture, packetNumber);
                 packets.Add(packet);
-            
+
                 if (packetNumber % 100 == 0)
                 {
                     progress?.Report(packetNumber);
@@ -105,7 +105,7 @@ public class SharpPcapFileService : IPcapFileService
         {
             var packet = Packet.ParsePacket(rawCapture.LinkLayerType, rawCapture.Data);
 
-            // Parse Ethernet layer
+
             var ethernetPacket = packet.Extract<EthernetPacket>();
             if (ethernetPacket != null)
             {
@@ -113,7 +113,7 @@ public class SharpPcapFileService : IPcapFileService
                 packetInfo.DestMac = ethernetPacket.DestinationHardwareAddress.ToString();
             }
 
-            // Parse IP layer
+
             var ipPacket = packet.Extract<IPPacket>();
             if (ipPacket != null)
             {
@@ -123,7 +123,7 @@ public class SharpPcapFileService : IPcapFileService
                 packetInfo.Protocol = ipPacket.Protocol.ToString().ToUpper();
             }
 
-            // Parse TCP layer
+
             var tcpPacket = packet.Extract<TcpPacket>();
             if (tcpPacket != null)
             {
@@ -132,7 +132,7 @@ public class SharpPcapFileService : IPcapFileService
                 packetInfo.Protocol = "TCP";
             }
 
-            // Parse UDP layer
+
             var udpPacket = packet.Extract<UdpPacket>();
             if (udpPacket != null)
             {
@@ -141,7 +141,7 @@ public class SharpPcapFileService : IPcapFileService
                 packetInfo.Protocol = "UDP";
             }
 
-            // Parse ICMP layer
+
             var icmpPacket = packet.Extract<IcmpV4Packet>();
             if (icmpPacket != null)
             {

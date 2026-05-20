@@ -92,25 +92,25 @@ namespace WareHound.UI.ViewModels
 
             var p = SelectedPacket;
 
-            // Frame
+
             var frame = new TreeNode($"Packet #{p.Number}: {p.Protocol}");
             frame.AddChild($"Capture Time: {p.CaptureTime:yyyy-MM-dd HH:mm:ss.fff}");
             frame.AddChild($"Packet ID: {p.Id}");
             PacketDetails.Add(frame);
 
-            // Ethernet
+
             var eth = new TreeNode($"Ethernet II, Src: {p.SourceMac}, Dst: {p.DestMac}");
             eth.AddChild($"Source MAC: {p.SourceMac}");
             eth.AddChild($"Destination MAC: {p.DestMac}");
             PacketDetails.Add(eth);
 
-            // IP
+
             var ip = new TreeNode($"Internet Protocol, Src: {p.SourceIp}, Dst: {p.DestIp}");
             ip.AddChild($"Source IP: {p.SourceIp}");
             ip.AddChild($"Destination IP: {p.DestIp}");
             PacketDetails.Add(ip);
 
-            // Protocol
+
             var proto = new TreeNode($"{p.Protocol}, Src Port: {p.SourcePort}, Dst Port: {p.DestPort}");
             proto.AddChild($"Source Port: {p.SourcePort}");
             proto.AddChild($"Destination Port: {p.DestPort}");

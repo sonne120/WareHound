@@ -9,6 +9,7 @@ namespace WareHound.UI.IPC
         void SelectDevice(int deviceIndex);
         void Start();
         void Stop();
+        void Reset();
         IntPtr GetSnifferHandle();
     }
 }

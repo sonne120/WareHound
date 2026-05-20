@@ -28,7 +28,7 @@ public partial class CaptureView : UserControl
         {
             oldVm.PropertyChanged -= ViewModel_PropertyChanged;
         }
-        
+
         if (e.NewValue is CaptureViewModel newVm)
         {
             newVm.PropertyChanged += ViewModel_PropertyChanged;
@@ -71,7 +71,7 @@ public partial class CaptureView : UserControl
     private void CaptureView_Loaded(object sender, RoutedEventArgs e)
     {
         _scrollViewer = GetScrollViewer(PacketGrid);
-        
+
         if (PacketGrid.ItemsSource is INotifyCollectionChanged collection)
         {
             collection.CollectionChanged += Packets_CollectionChanged;
@@ -107,7 +107,7 @@ public partial class CaptureView : UserControl
 
         var targetOffset = _scrollViewer.ScrollableHeight;
         var currentOffset = _scrollViewer.VerticalOffset;
-        
+
         if (Math.Abs(targetOffset - currentOffset) < 1) return;
 
         var animation = new DoubleAnimation
@@ -146,7 +146,7 @@ public partial class CaptureView : UserControl
     private static ScrollViewer? GetScrollViewer(DependencyObject obj)
     {
         if (obj is ScrollViewer sv) return sv;
-        
+
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
         {
             var child = VisualTreeHelper.GetChild(obj, i);

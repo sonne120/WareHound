@@ -7,21 +7,21 @@ public class CaptureStatistics
     public DateTime CaptureStartTime { get; set; }
     public DateTime CaptureEndTime { get; set; }
     public TimeSpan Duration => CaptureEndTime - CaptureStartTime;
-    public Dictionary<string, ProtocolStats> ProtocolBreakdown { get; set; } = new(); 
+    public Dictionary<string, ProtocolStats> ProtocolBreakdown { get; set; } = new();
     public Dictionary<string, long> TopSourceIPs { get; set; } = new();
     public Dictionary<string, long> TopDestIPs { get; set; } = new();
-    
+
     public Dictionary<int, long> TopSourcePorts { get; set; } = new();
     public Dictionary<int, long> TopDestPorts { get; set; } = new();
-    
+
     public List<TimelinePoint> PacketsTimeline { get; set; } = new();
-    
-    public double PacketsPerSecond => Duration.TotalSeconds > 0 
-        ? TotalPackets / Duration.TotalSeconds 
+
+    public double PacketsPerSecond => Duration.TotalSeconds > 0
+        ? TotalPackets / Duration.TotalSeconds
         : 0;
-    
-    public double BytesPerSecond => Duration.TotalSeconds > 0 
-        ? TotalBytes / Duration.TotalSeconds 
+
+    public double BytesPerSecond => Duration.TotalSeconds > 0
+        ? TotalBytes / Duration.TotalSeconds
         : 0;
 }
 

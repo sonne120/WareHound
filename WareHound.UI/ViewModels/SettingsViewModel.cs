@@ -15,7 +15,7 @@ namespace WareHound.UI.ViewModels
         private string _captureFilter = "";
         private int _selectedTimeFormatIndex = 0;
         private int _selectedThemeIndex = 0;
-        private int _selectedPcapBackendIndex = 1; 
+        private int _selectedPcapBackendIndex = 1;
         private bool _grpcEnabled = false;
         private string _grpcServerAddress = "https://localhost:5001";
 
@@ -124,7 +124,7 @@ namespace WareHound.UI.ViewModels
             get => _captureFilter;
             set => SetProperty(ref _captureFilter, value);
         }
-        
+
         public int SelectedPcapBackendIndex
         {
             get => _selectedPcapBackendIndex;
@@ -137,9 +137,9 @@ namespace WareHound.UI.ViewModels
                 }
             }
         }
-        
+
         public PcapBackend SelectedPcapBackend => (PcapBackend)_selectedPcapBackendIndex;
-        
+
         public SettingsViewModel(IEventAggregator eventAggregator, ILoggerService logger)
             : base(eventAggregator, logger)
         {

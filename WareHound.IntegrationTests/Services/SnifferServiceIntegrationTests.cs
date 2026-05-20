@@ -128,7 +128,7 @@ public class SnifferServiceIntegrationTests : IDisposable
         });
         _snifferService.SelectDevice(0);
         _snifferService.StartCapture();
-        
+
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         var packets = new List<PacketInfo>();
 

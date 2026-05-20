@@ -21,7 +21,7 @@ namespace WareHound.UI.Controls
             set { SetValue(CommandProperty, value); }
         }
 
-        // CommandParameter property
+
         public static readonly DependencyProperty CommandParameterProperty =
             DependencyProperty.Register("CommandParameter", typeof(object), typeof(MenuItem));
 
@@ -44,7 +44,7 @@ namespace WareHound.UI.Controls
             ExecuteCommand();
         }
 
-        // Icon property
+
         public static readonly DependencyProperty IconProperty =
             DependencyProperty.Register("Icon", typeof(Geometry), typeof(MenuItem));
 
@@ -54,7 +54,7 @@ namespace WareHound.UI.Controls
             set { SetValue(IconProperty, value); }
         }
 
-        // IconWidth property
+
         public static readonly DependencyProperty IconWidthProperty =
             DependencyProperty.Register("IconWidth", typeof(int), typeof(MenuItem), new PropertyMetadata(18));
 
@@ -64,7 +64,7 @@ namespace WareHound.UI.Controls
             set { SetValue(IconWidthProperty, value); }
         }
 
-        // IndicatorBrush property
+
         public static readonly DependencyProperty IndicatorBrushProperty =
             DependencyProperty.Register("IndicatorBrush", typeof(SolidColorBrush), typeof(MenuItem));
 
@@ -74,7 +74,7 @@ namespace WareHound.UI.Controls
             set { SetValue(IndicatorBrushProperty, value); }
         }
 
-        // Text property
+
         public static readonly DependencyProperty TextProperty =
             DependencyProperty.Register("Text", typeof(string), typeof(MenuItem));
 
@@ -84,7 +84,7 @@ namespace WareHound.UI.Controls
             set { SetValue(TextProperty, value); }
         }
 
-        // Padding property
+
         public static new readonly DependencyProperty PaddingProperty =
             DependencyProperty.Register("Padding", typeof(Thickness), typeof(MenuItem));
 
@@ -94,7 +94,7 @@ namespace WareHound.UI.Controls
             set { SetValue(PaddingProperty, value); }
         }
 
-        // IsSelected property
+
         public static readonly DependencyProperty IsSelectedProperty =
             DependencyProperty.Register("IsSelected", typeof(bool), typeof(MenuItem), new PropertyMetadata(false));
 
@@ -104,7 +104,7 @@ namespace WareHound.UI.Controls
             set { SetValue(IsSelectedProperty, value); }
         }
 
-        // GroupName property
+
         public static readonly DependencyProperty GroupNameProperty =
             DependencyProperty.Register("GroupName", typeof(string), typeof(MenuItem));
 

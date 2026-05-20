@@ -54,10 +54,10 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;WIN32_LEAN_AND_MEAN;SNIFFER_ARCH_X64;WAREHOUND_SNIFFER_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;WIN32_LEAN_AND_MEAN;SNIFFER_ARCH_X64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\header\WpdPack\WpdPack\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;..\header\WpdPack\WpdPack\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -73,10 +73,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;WIN32_LEAN_AND_MEAN;SNIFFER_ARCH_X64;WAREHOUND_SNIFFER_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;WIN32_LEAN_AND_MEAN;SNIFFER_ARCH_X64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\header\WpdPack\WpdPack\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)include;..\header\WpdPack\WpdPack\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -89,28 +89,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="mainFunc.cpp" />
-    <ClCompile Include="ipc.cpp" />
-    <ClCompile Include="packages_globals.cpp" />
-    <ClCompile Include="builderDevice.cpp" />
-    <ClCompile Include="Sniffer.cpp" />
-    <ClCompile Include="SnifferExports.cpp" />
-    <ClCompile Include="StatisticsExports.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="builderDevice.h" />
-    <ClInclude Include="ether_ntoa.h" />
-    <ClInclude Include="handleProto.h" />
-    <ClInclude Include="ipc.h" />
-    <ClInclude Include="mainFunc.h" />
-    <ClInclude Include="packages.h" />
-    <ClInclude Include="struct.h" />
-    <ClInclude Include="Sniffer.h" />
-    <ClInclude Include="FlowTracker.h" />
-    <ClInclude Include="FlowTable.h" />
-    <ClInclude Include="PacketParser.h" />
-    <ClInclude Include="ProtocolDetector.h" />
-    <ClInclude Include="StatisticsExports.h" />
+    <ClCompile Include="examples\simple_sniff.cpp" />
+    <ClCompile Include="src\capture\device_scanner.cpp" />
+    <ClCompile Include="src\pcap_source.cpp" />
+    <ClCompile Include="src\api\ipc_pipe.cpp" />
+    <ClCompile Include="src\api\ipc.cpp" />
+    <ClCompile Include="src\api\statistic_exports.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

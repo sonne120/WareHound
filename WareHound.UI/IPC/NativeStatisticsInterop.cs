@@ -120,9 +120,9 @@ public class NativeStatisticsInterop : INativeStatisticsInterop
     {
         var buffer = new NativeProtocolStats[maxCount];
         int count = Sniffer_GetProtocolStats(_snifferHandle, buffer, maxCount);
-        
+
         if (count <= 0) return Array.Empty<NativeProtocolStats>();
-        
+
         var result = new NativeProtocolStats[count];
         Array.Copy(buffer, result, count);
         return result;
@@ -132,9 +132,9 @@ public class NativeStatisticsInterop : INativeStatisticsInterop
     {
         var buffer = new NativeTalkerStats[maxCount];
         int count = Sniffer_GetTopSourceIPs(_snifferHandle, buffer, maxCount);
-        
+
         if (count <= 0) return Array.Empty<NativeTalkerStats>();
-        
+
         var result = new NativeTalkerStats[count];
         Array.Copy(buffer, result, count);
         return result;
@@ -144,9 +144,9 @@ public class NativeStatisticsInterop : INativeStatisticsInterop
     {
         var buffer = new NativeTalkerStats[maxCount];
         int count = Sniffer_GetTopDestIPs(_snifferHandle, buffer, maxCount);
-        
+
         if (count <= 0) return Array.Empty<NativeTalkerStats>();
-        
+
         var result = new NativeTalkerStats[count];
         Array.Copy(buffer, result, count);
         return result;
@@ -156,9 +156,9 @@ public class NativeStatisticsInterop : INativeStatisticsInterop
     {
         var buffer = new NativePortStats[maxCount];
         int count = Sniffer_GetTopPorts(_snifferHandle, buffer, maxCount);
-        
+
         if (count <= 0) return Array.Empty<NativePortStats>();
-        
+
         var result = new NativePortStats[count];
         Array.Copy(buffer, result, count);
         return result;

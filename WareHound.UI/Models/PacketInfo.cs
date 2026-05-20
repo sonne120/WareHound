@@ -22,20 +22,20 @@ public class PacketInfo : INotifyPropertyChanged
     public string DestMac { get; set; } = "";
     public string HostName { get; set; } = "";
     public DateTime CaptureTime { get; set; }
-    
+
     public byte[]? RawData { get; set; }
     public uint CaptureLen { get; set; }
     public uint OriginalLen { get; set; }
 
     string unknown = "Unknown";
-    
+
     public string TimeDisplay => _currentTimeFormat switch
     {
         TimeFormatType.Absolute => CaptureTime.ToString("HH:mm:ss.fff"),
         TimeFormatType.Delta => $"+{(CaptureTime - _captureStartTime).TotalSeconds:F3}s",
-        _ => CaptureTime.ToString("HH:mm:ss.fff") // Relative (default)
+        _ => CaptureTime.ToString("HH:mm:ss.fff")
     };
-    
+
     public string Info => $"{SourcePort} → {DestPort} | Host:{(string.IsNullOrEmpty(HostName) ? unknown : HostName)} | ID: {Id}";
 
     public static void SetTimeFormat(TimeFormatType format)
@@ -59,21 +59,21 @@ public class PacketInfo : INotifyPropertyChanged
         if (snapshot.TimestampSec > 0)
         {
             captureTime = DateTimeOffset.FromUnixTimeSeconds((long)snapshot.TimestampSec)
-                .AddTicks(snapshot.TimestampUsec * 10) // Microseconds to ticks
+                .AddTicks(snapshot.TimestampUsec * 10)
                 .LocalDateTime;
         }
         else
         {
             captureTime = DateTime.Now;
         }
-        
+
         byte[]? rawData = null;
         if (snapshot.CaptureLen > 0 && snapshot.RawData != null)
         {
             rawData = new byte[snapshot.CaptureLen];
             Array.Copy(snapshot.RawData, rawData, (int)snapshot.CaptureLen);
         }
-        
+
         return new PacketInfo
         {
             Number = number,
@@ -92,7 +92,7 @@ public class PacketInfo : INotifyPropertyChanged
             OriginalLen = snapshot.OriginalLen
         };
     }
-    
+
     public SnapshotStruct ToSnapshot()
     {
         var snapshot = new SnapshotStruct
@@ -112,12 +112,12 @@ public class PacketInfo : INotifyPropertyChanged
             TimestampUsec = (uint)(CaptureTime.Ticks % TimeSpan.TicksPerSecond / 10),
             RawData = new byte[65536]
         };
-        
+
         if (RawData != null && RawData.Length > 0)
         {
             Array.Copy(RawData, snapshot.RawData, Math.Min(RawData.Length, 65536));
         }
-        
+
         return snapshot;
     }
 }

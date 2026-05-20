@@ -9,10 +9,10 @@ namespace WareHound.UI.IPC
     public class SnifferInterop : ISnifferInterop
     {
         private const string DllName = "WareHound.Sniffer.dll";
-        
+
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr Sniffer_Create();
-        
+
         private static IntPtr _snifferHandle = IntPtr.Zero;
         private bool _disposed;
 
@@ -34,7 +34,7 @@ namespace WareHound.UI.IPC
                     _snifferHandle = IntPtr.Zero;
                 }
             }
-            
+
             StreamPtr.StartStream(deviceIndex);
         }
 
@@ -52,10 +52,13 @@ namespace WareHound.UI.IPC
         {
             StopCapturePtr.Stop();
             Thread.Sleep(200);
-        
+        }
+
+        public void Reset()
+        {
             StreamPtr.Reset();
         }
-        
+
         public IntPtr GetSnifferHandle()
         {
             return _snifferHandle;

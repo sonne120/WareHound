@@ -161,14 +161,14 @@ namespace WareHound.UI.ViewModels
             Publish<FilterChangedEvent, FilterCriteria>(criteria);
         }
 
-        public MainWindowViewModel(IRegionManager regionManager, ICaptureSessionFacade captureSession, 
+        public MainWindowViewModel(IRegionManager regionManager, ICaptureSessionFacade captureSession,
             IEventAggregator eventAggregator, ILoggerService logger)
             : base(eventAggregator, logger)
         {
             _regionManager = regionManager ?? throw new ArgumentNullException(nameof(regionManager));
             _captureSession = captureSession ?? throw new ArgumentNullException(nameof(captureSession));
 
-            // Subscribe to facade events
+
             _captureSession.CaptureStateChanged += OnFacadeCaptureStateChanged;
             _captureSession.ErrorOccurred += OnFacadeError;
             _captureSession.DevicesLoaded += OnFacadeDevicesLoaded;
@@ -194,7 +194,7 @@ namespace WareHound.UI.ViewModels
 
             Subscribe<PacketCapturedEvent, PacketInfo>(OnPacketReceived);
 
-            // Status update timer
+
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _statusTimer.Tick += OnStatusTimerTick;
             _statusTimer.Start();
@@ -225,12 +225,12 @@ namespace WareHound.UI.ViewModels
             try
             {
                 await _captureSession.LoadDevicesAsync(TimeSpan.FromSeconds(30));
-                
+
                 if (Devices.Count > 0 && SelectedDevice == null)
                 {
                     SelectedDevice = Devices[0];
                 }
-                
+
                 Publish<DevicesLoadedEvent>();
             }
             catch (TimeoutException ex)
@@ -274,7 +274,7 @@ namespace WareHound.UI.ViewModels
             if (SelectedDevice == null || IsCapturing) return;
 
             _captureSession.StartCapture();
-            
+
             if (_captureSession.IsCapturing)
             {
                 IsCapturing = true;
@@ -302,7 +302,7 @@ namespace WareHound.UI.ViewModels
 
         private void ClearFilter()
         {
-            SelectedFilterType = FilterTypes[0]; 
+            SelectedFilterType = FilterTypes[0];
             FilterText = "";
         }
 
@@ -329,10 +329,10 @@ namespace WareHound.UI.ViewModels
             try
             {
                 var packets = await _captureSession.LoadPcapAsync(dialog.FileName);
-                
-                // Publish event to load packets into CaptureViewModel
+
+
                 Publish<PcapLoadedEvent, IList<PacketInfo>>(packets);
-                
+
                 PacketCount = packets.Count;
                 StatusText = $"Loaded {packets.Count} packets";
             }
@@ -340,9 +340,9 @@ namespace WareHound.UI.ViewModels
             {
                 LogError("[MainWindowViewModel] Failed to open PCAP file", ex);
                 System.Windows.MessageBox.Show(
-                    $"Failed to open PCAP file:\n{ex.Message}", 
-                    "Error", 
-                    System.Windows.MessageBoxButton.OK, 
+                    $"Failed to open PCAP file:\n{ex.Message}",
+                    "Error",
+                    System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Error);
                 StatusText = "Load failed";
             }
@@ -368,18 +368,18 @@ namespace WareHound.UI.ViewModels
 
             try
             {
-                // Request packets from CaptureViewModel via event
+
                 var packetsTask = new TaskCompletionSource<IList<PacketInfo>>();
-                
-                // Subscribe to response
+
+
                 Subscribe<PcapSaveResponseEvent, IList<PacketInfo>>(packets =>
                 {
                     packetsTask.TrySetResult(packets);
                 });
-                
-                // Request packets
+
+
                 Publish<PcapSaveRequestEvent>();
-                
+
                 var packets = await Task.WhenAny(packetsTask.Task, Task.Delay(5000)) == packetsTask.Task
                     ? packetsTask.Task.Result
                     : new List<PacketInfo>();
@@ -396,7 +396,7 @@ namespace WareHound.UI.ViewModels
                 }
 
                 await _captureSession.SavePcapAsync(dialog.FileName, packets);
-                
+
                 StatusText = $"Saved {packets.Count} packets";
             }
             catch (Exception ex)
