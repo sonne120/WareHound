@@ -294,18 +294,12 @@
                                     ToolTip="Start Capture"
                                     Margin="8,0,0,0"/>
                             <Button x:Name="StopCaptureButton"
-                                    Style="{StaticResource CaptureControlButtonStyle}"
+                                    Style="{StaticResource StopCaptureControlButtonStyle}"
                                     Tag="{StaticResource StopIcon}"
                                     Command="{Binding StopCaptureCommand}"
                                     AutomationProperties.AutomationId="StopCaptureButton"
                                     AutomationProperties.Name="Stop Capture"
-                                    ToolTip="Stop Capture">
-                                <Button.Resources>
-                                    <Style TargetType="Path">
-                                        <Setter Property="Fill" Value="{StaticResource ErrorBrush}"/>
-                                    </Style>
-                                </Button.Resources>
-                            </Button>
+                                    ToolTip="Stop Capture"/>
 
                             <Separator Style="{StaticResource VerticalSeparatorStyle}" Margin="12,6"/>
 

@@ -31,7 +31,6 @@ public class NativeSnifferService : ISnifferService, IDisposable
     private const string EventName = "Global\\sniffer";
     private const int PipeConnectionTimeoutMs = 5000;
     private const int PipeServerStartDelayMs = 500;
-    private const int DummyPacketId = 1000;
     private const int ChannelCapacity = 10000;
 
     private SafeWaitHandle? _eventHandle;
@@ -375,9 +374,6 @@ public class NativeSnifferService : ISnifferService, IDisposable
         try
         {
             var header = Marshal.PtrToStructure<SnapshotHeader>(handle.AddrOfPinnedObject());
-
-            if (header.Id == DummyPacketId)
-                return;
             
             byte[]? rawData = null;
             if (header.CaptureLen > 0 && _pipeClient != null)

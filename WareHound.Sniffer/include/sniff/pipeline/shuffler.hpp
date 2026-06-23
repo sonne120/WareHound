@@ -47,11 +47,7 @@ public:
         if (!ok) drops_.fetch_add(1, std::memory_order_relaxed);
         return ok;
     }
-
-    // Consumer side — called from reducer thread `reducer_id`.
-    // Scans mapper queues for this reducer in round-robin order; returns first
-    // packet found. Updates poll_cursor_[reducer_id] so the next call starts
-    // where the previous one left off (fair to all mappers).
+   // Consumer side — called from reducer thread `reducer_id`.
     bool poll(std::size_t reducer_id, PacketView& out) noexcept {
         const std::size_t start = poll_cursor_[reducer_id];
         for (std::size_t i = 0; i < num_mappers_; ++i) {
@@ -65,8 +61,6 @@ public:
         return false;
     }
 
-    // Initialize per-reducer poll cursors. Must be called after construction
-    // before any reducer threads start.
     void init_poll_cursors() {
         poll_cursor_.assign(num_reducers_, 0);
     }
@@ -84,4 +78,4 @@ private:
     std::atomic<uint64_t> drops_{0};
 };
 
-} // namespace sniff::pipeline
+} 

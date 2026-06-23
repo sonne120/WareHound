@@ -1,14 +1,4 @@
-// libsniff/pipeline/mapper_pool.hpp
-// Pool of mapper threads. Each thread:
-//   1) claims a PacketView from the SPMC capture ring,
-//   2) parses headers (analyzers::parse_eth_ipv4),
-//   3) hands the packet to Shuffler::offer(my_id, pv) — which pushes into
-//      the THIS-mapper-to-target-reducer SPSC cell.
-//
-// Because mapper i always pushes only into queues_[i*R + *], its writes are
-// the sole writer to those SPSC cells — TSan-clean.
 #pragma once
-
 #include "sniff/analyzers/eth_ip.hpp"
 #include "sniff/core/mempool.hpp"
 #include "sniff/core/ring_buffer.hpp"
@@ -93,4 +83,4 @@ private:
     std::atomic<uint64_t> unparseable_{0};
 };
 
-} // namespace sniff::pipeline
+} 

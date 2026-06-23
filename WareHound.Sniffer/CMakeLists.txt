@@ -1,3 +1,4 @@
+# CMakeLists.txt for WareHound.Sniffer (adapted from libsniff)
 cmake_minimum_required(VERSION 3.16)
 project(WareHound.Sniffer CXX)
 

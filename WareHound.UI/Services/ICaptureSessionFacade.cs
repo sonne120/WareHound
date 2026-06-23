@@ -11,6 +11,7 @@ namespace WareHound.UI.Services
         bool IsLoadingDevices { get; }
         Task LoadDevicesAsync(TimeSpan timeout);
         void SelectDevice(int deviceIndex);
+        Task WarmupSelectedDeviceAsync();
         bool IsCapturing { get; }
         void StartCapture();
         void StopCapture();

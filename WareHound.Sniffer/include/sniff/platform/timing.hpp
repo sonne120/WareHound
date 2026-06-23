@@ -11,4 +11,4 @@ inline uint64_t now_ns() noexcept {
         duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count());
 }
 
-} // namespace sniff::platform
+} 

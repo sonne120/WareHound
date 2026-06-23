@@ -94,6 +94,11 @@ namespace WareHound.UI.Services
             }
         }
 
+        public Task WarmupSelectedDeviceAsync()
+        {
+            return _snifferService.WarmupSelectedDeviceAsync();
+        }
+
         public void StartCapture()
         {
             if (_selectedDevice == null)

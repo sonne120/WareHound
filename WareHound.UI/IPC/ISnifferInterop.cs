@@ -7,6 +7,7 @@ namespace WareHound.UI.IPC
         List<string> GetDevices();
         void Initialize(int deviceIndex);
         void SelectDevice(int deviceIndex);
+        void Warmup(int deviceIndex);
         void Start();
         void Stop();
         void Reset();

@@ -1,7 +1,5 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Threading;
 using WareHound.UI.Infrastructure.Services;
 
 namespace WareHound.UI.IPC.Ptr
@@ -19,12 +17,11 @@ namespace WareHound.UI.IPC.Ptr
 
         private static readonly object _sync = new();
         private static bool _isInitialized;
-        private static Thread? _workerThread;
         private static int _activeDevice = -1;
 
         public static bool IsLoaded => _isInitialized;
 
-        public static bool IsRunning => _workerThread is { IsAlive: true };
+        public static int ActiveDevice => _activeDevice;
 
         public static void StartStream(int deviceIndex)
         {
@@ -33,29 +30,20 @@ namespace WareHound.UI.IPC.Ptr
                 if (_isInitialized)
                     return;
 
-                _activeDevice = deviceIndex;
-                _workerThread = new Thread(() =>
+                try
                 {
-                    try
-                    {
-                        fnCPPDLL(deviceIndex);
-                    }
-                    catch (DllNotFoundException ex)
-                    {
-                        _logger?.LogError($"[StreamPtr] ERROR: DLL not found: {ex.Message}", ex);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogError($"[StreamPtr] Worker thread error: {ex.GetType().Name} - {ex.Message}", ex);
-                    }
-                })
+                    fnCPPDLL(deviceIndex);
+                    _activeDevice = deviceIndex;
+                    _isInitialized = true;
+                }
+                catch (DllNotFoundException ex)
                 {
-                    IsBackground = true,
-                    Name = "SnifferCaptureThread"
-                };
-
-                _workerThread.Start();
-                _isInitialized = true;
+                    _logger?.LogError($"[StreamPtr] ERROR: DLL not found: {ex.Message}", ex);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError($"[StreamPtr] fnCPPDLL failed: {ex.GetType().Name} - {ex.Message}", ex);
+                }
             }
         }
 
@@ -63,22 +51,6 @@ namespace WareHound.UI.IPC.Ptr
         {
             lock (_sync)
             {
-                if (_workerThread is { IsAlive: true })
-                {
-                    _logger?.LogDebug("[StreamPtr] Waiting for worker thread to terminate...");
-                    _workerThread.Join(2000);
-
-                    if (_workerThread.IsAlive)
-                    {
-                        _logger?.LogDebug("[StreamPtr] Worker thread did not terminate in time");
-                    }
-                    else
-                    {
-                        _logger?.LogDebug("[StreamPtr] Worker thread terminated successfully");
-                    }
-                }
-
-                _workerThread = null;
                 _isInitialized = false;
                 _activeDevice = -1;
             }

@@ -51,7 +51,7 @@ inline uint64_t hash_flow(const FlowKey& k) noexcept {
     return h;
 }
 
-} // namespace sniff::flow
+} 
 
 namespace std {
 template <>
@@ -60,4 +60,4 @@ struct hash<sniff::flow::FlowKey> {
         return static_cast<size_t>(sniff::flow::hash_flow(k));
     }
 };
-} // namespace std
+} 

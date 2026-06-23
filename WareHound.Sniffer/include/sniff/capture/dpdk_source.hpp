@@ -14,6 +14,6 @@ public:
     const char* backend_name() const noexcept override { return "dpdk"; }
 };
 
-} // namespace sniff::capture
+} 
 
-#endif // SNIFF_WITH_DPDK
+#endif 

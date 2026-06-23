@@ -229,6 +229,8 @@ public class TestSnifferService : ISnifferService
         }
     }
 
+    public Task WarmupSelectedDeviceAsync() => Task.CompletedTask;
+
     public void StartCapture()
     {
         if (SelectedDeviceIndex >= 0)

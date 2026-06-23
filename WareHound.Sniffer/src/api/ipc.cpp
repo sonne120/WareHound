@@ -2,6 +2,7 @@
 #include "sniff/sniff.hpp"
 #include "sniff/capture/device_scanner.hpp"
 #include "ipc_pipe.hpp"
+#include <pcap.h>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -52,7 +53,7 @@ IPC_EXPORT void IPC_CALL fnDevCPPDLL(char** data, int* sizes, int* count) {
 IPC_EXPORT void IPC_CALL fnCPPDLL(int d) {
     fnPutdevCPPDLL(d);
     fnSetIpcMode(SNIFFER_IPC_MODE_PIPE);
-    fnStartCapture();
+    //fnStartCapture();
 }
 
 IPC_EXPORT void IPC_CALL fnPutdevCPPDLL(int dev) {    
@@ -107,7 +108,18 @@ IPC_EXPORT void IPC_CALL fnCloseApp() {
     }
 }
 
-} 
+IPC_EXPORT void IPC_CALL fnWarmupDevice(int dev) {
+    std::string name = sniff::capture::DeviceScanner::GetDeviceNameAt(dev);
+    if (name.empty()) return;
+
+    char errbuf[PCAP_ERRBUF_SIZE] = {0};
+    pcap_t* handle = pcap_open_live(name.c_str(), 2048, 1, 100, errbuf);
+    if (handle) {
+        pcap_close(handle);
+    }
+}
+
+}
 
 sniff::Pipeline* GetGlobalPipeline() {
     return g_pipeline.get();

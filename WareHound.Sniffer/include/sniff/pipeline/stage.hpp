@@ -1,15 +1,4 @@
-// libsniff/pipeline/stage.hpp
-// Common types crossing pipeline stages.
-//
-// PacketView is the small POD that flows through every ring. It carries:
-//   - a pointer into the BufferPool (data),
-//   - parsed metadata filled by mappers,
-//   - timing/length.
-//
-// Whoever holds the PacketView "owns" the buffer until they pass it on or
-// release it back to the pool.
 #pragma once
-
 #include "sniff/flow/flow_key.hpp"
 
 #include <cstdint>
@@ -17,8 +6,7 @@
 namespace sniff::pipeline {
 
 enum class L4Protocol : uint8_t {
-    Unknown = 0,    // (Often overlaps with HOPOPT, but we'll use 0 for Unknown generally or HOPOPT)
-    Hopopt = 0,
+    Unknown = 0,    
     Icmp = 1,
     Igmp = 2,
     Ggp = 3,
@@ -102,18 +90,13 @@ struct PacketView {
     uint8_t*  data{nullptr};        // owned by BufferPool
     uint32_t  length{0};
     uint64_t  timestamp_ns{0};
-
-    // Filled by mappers; meaningful only after parse stage.
     flow::FlowKey flow{};
     L4Protocol    l4{L4Protocol::Unknown};
     uint16_t      l4_offset{0};      // byte offset into `data`
     bool          parsed{false};
-
-    // Default move/copy are fine — it's a POD-ish struct.
 };
 
-// Sanity: keep PacketView at or under one cache line for efficient transfer.
 static_assert(sizeof(PacketView) <= 64,
               "PacketView grew beyond a cache line — re-check fields");
 
-} // namespace sniff::pipeline
+}

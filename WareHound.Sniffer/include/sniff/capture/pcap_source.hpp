@@ -1,5 +1,3 @@
-// libsniff/capture/pcap_source.hpp
-// libpcap (Linux/macOS) / Npcap (Windows) packet capture source.
 #pragma once
 
 #include "sniff/capture/packet_source.hpp"

@@ -37,6 +37,7 @@ extern "C" {
     IPC_EXPORT void IPC_CALL fnStartCapture();
     IPC_EXPORT void IPC_CALL fnStopCapture();
     IPC_EXPORT void IPC_CALL fnCloseApp();
+    IPC_EXPORT void IPC_CALL fnWarmupDevice(int dev);
 
 #ifdef __cplusplus
 }

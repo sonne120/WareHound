@@ -29,7 +29,6 @@ namespace WareHound.UI.Services
         private const string EventName = "Local\\sniffer";
         private const int PipeConnectionTimeoutMs = 8000;
         private const int PipeServerStartDelayMs = 500;
-        private const int DummyPacketId = 1000;
         private const int ChannelCapacity = 10000;
 
         private SafeWaitHandle? _eventHandle;
@@ -66,6 +65,24 @@ namespace WareHound.UI.Services
         {
             _selectedDeviceIndex = deviceIndex;
             _logger.LogDebug($"Device selected: {deviceIndex}");
+        }
+
+        public Task WarmupSelectedDeviceAsync()
+        {
+            int index = _selectedDeviceIndex;
+            return Task.Run(() =>
+            {
+                try
+                {
+                    _logger.LogDebug($"Warming up device {index}...");
+                    _snifferInterop.Warmup(index);
+                    _logger.LogDebug("Device warm-up complete");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"Device warm-up failed (non-fatal): {ex.Message}");
+                }
+            });
         }
 
         public void StartCapture()
@@ -290,15 +307,11 @@ namespace WareHound.UI.Services
             }
 
             _snifferInterop.Initialize(deviceIndex);
-            Thread.Sleep(PipeServerStartDelayMs);
 
-            //SetEvent(_eventHandle);
+            _snifferInterop.Start();
 
             _pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.In);
             _pipeClient.Connect(PipeConnectionTimeoutMs);
-
-            _snifferInterop.SelectDevice(deviceIndex);
-            _snifferInterop.Start();
 
             _isCapturing = true;
 
@@ -381,12 +394,7 @@ namespace WareHound.UI.Services
             {
                 var header = Marshal.PtrToStructure<SnapshotHeader>(handle.AddrOfPinnedObject());
 
-                if (header.Id == DummyPacketId)
-                {
-                    DrainPayload(header.CaptureLen);
-                    return;
-                }
-
+  
                 if (header.CaptureLen > 65536)
                 {
                     _logger.LogWarning($"[PipeReader] Invalid frame capture length: {header.CaptureLen}. Skipping.");
@@ -425,19 +433,6 @@ namespace WareHound.UI.Services
             }
         }
 
-        private void DrainPayload(uint length)
-        {
-            if (length == 0 || _pipeClient == null) return;
-            byte[] sink = new byte[Math.Min(length, 4096u)];
-            uint remaining = length;
-            while (remaining > 0)
-            {
-                int toRead = (int)Math.Min(remaining, (uint)sink.Length);
-                int read = _pipeClient.Read(sink, 0, toRead);
-                if (read == 0) break;
-                remaining -= (uint)read;
-            }
-        }
 
         public async IAsyncEnumerable<IList<PacketInfo>> GetPacketBatchesAsync(
             [EnumeratorCancellation] CancellationToken ct = default)

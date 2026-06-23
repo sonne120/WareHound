@@ -37,4 +37,4 @@ public:
     virtual const char* backend_name() const noexcept = 0;
 };
 
-} // namespace sniff::capture
+} 

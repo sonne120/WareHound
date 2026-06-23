@@ -42,7 +42,7 @@ public:
 
     std::size_t capacity() const noexcept { return mask_ + 1; }
 
-    // Producer side
+
     bool try_push(T value) noexcept {
         const auto head = head_.value.load(std::memory_order_relaxed);
         const auto next = head + 1;
@@ -58,7 +58,6 @@ public:
         return true;
     }
 
-    // Consumer side
     bool try_pop(T& out) noexcept {
         const auto tail = tail_.value.load(std::memory_order_relaxed);
         // Empty when tail >= head.
@@ -93,13 +92,12 @@ private:
     const std::size_t mask_;
     T* const slots_;
 
-    // Producer's view (first cache line)
-    Sequence head_{};            // last sequence WRITTEN (starts at -1)
-    int64_t  tail_cache_{};      // cached tail (initialized in ctor body)
+   
+    Sequence head_{};            
+    int64_t  tail_cache_{};     
 
-    // Consumer's view (placed on its own line via Sequence padding)
-    Sequence tail_{};            // last sequence READ (starts at -1)
+    Sequence tail_{};            
     int64_t  head_cache_{};
 };
 
-} // namespace sniff::core
+} 

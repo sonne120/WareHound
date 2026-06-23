@@ -43,6 +43,11 @@ namespace WareHound.UI.IPC
             PutDevicePtr.SelectDevice(deviceIndex);
         }
 
+        public void Warmup(int deviceIndex)
+        {
+            WarmupPtr.Warmup(deviceIndex);
+        }
+
         public void Start()
         {
             StartCapturePtr.Start();

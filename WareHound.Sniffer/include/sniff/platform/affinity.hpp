@@ -1,5 +1,3 @@
-// libsniff/platform/affinity.hpp
-// Cross-platform CPU affinity and thread tuning.
 #pragma once
 
 #include <cstdint>
@@ -59,7 +57,7 @@ inline bool pin_current_thread_to_core(int core_id) noexcept {
 
 inline void set_current_thread_name(const std::string& name) noexcept {
 #if defined(_WIN32)
-    // Windows 10 1607+ has SetThreadDescription
+    // Windows has SetThreadDescription
     int wlen = MultiByteToWideChar(CP_UTF8, 0, name.c_str(), -1, nullptr, 0);
     if (wlen <= 0) return;
     std::wstring wname(static_cast<size_t>(wlen), L'\0');
@@ -68,7 +66,7 @@ inline void set_current_thread_name(const std::string& name) noexcept {
 #elif defined(__APPLE__)
     pthread_setname_np(name.c_str());
 #else
-    // Linux limits name to 16 bytes including null terminator
+    // Linux limits name to 16 bytes 
     std::string trimmed = name.substr(0, 15);
     pthread_setname_np(pthread_self(), trimmed.c_str());
 #endif

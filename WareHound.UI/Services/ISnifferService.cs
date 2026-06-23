@@ -15,6 +15,7 @@ namespace WareHound.UI.Services
         Task LoadDevicesAsync(CancellationToken cancellationToken = default);
         Task LoadDevicesAsync(TimeSpan timeout);
         void SelectDevice(int deviceIndex);
+        Task WarmupSelectedDeviceAsync();
         void StartCapture();
         void StartCapture(int deviceIndex);
         void StopCapture();

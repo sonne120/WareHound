@@ -1,10 +1,4 @@
-// libsniff/pipeline/reducer.hpp
-// Reducer base. Each reducer runs on its own thread, polling its row of
-// SPSC queues in the Shuffler matrix. It owns its own statistics (no shared
-// state with other reducers), and releases buffers back to the BufferPool
-// when done.
 #pragma once
-
 #include "sniff/core/mempool.hpp"
 #include "sniff/pipeline/shuffler.hpp"
 #include "sniff/pipeline/stage.hpp"
@@ -72,7 +66,7 @@ private:
                 platform::cpu_pause();
             }
         }
-        // Drain remaining queues so payload buffers go back to the pool.
+       // After stopping, drain any remaining packets to release buffers back to pool.
         while (shuffler.poll(reducer_id, pv)) {
             pool_.release(pv.data);
         }
@@ -87,7 +81,6 @@ private:
     std::atomic<uint64_t> bytes_{0};
 };
 
-// Sample concrete reducer: per-L4-protocol counter.
 class L4CounterReducer : public Reducer {
 public:
     using Reducer::Reducer;
@@ -140,7 +133,7 @@ protected:
         if (pv.parsed && pv.length >= 34) {
             const uint8_t* ip = pv.data + 14; 
             
-            // Console Debug Output 
+            
             const char* proto_name = sniff::analyzers::HandleProto::get_name(pv.l4);
 
             std::printf("IO: %u.%u.%u.%u -> %u.%u.%u.%u [%s]\n",
@@ -152,7 +145,6 @@ protected:
             uint32_t dst_ip = (ip[16] << 24) | (ip[17] << 16) | (ip[18] << 8) | ip[19];
             
             uint16_t src_port = 0, dst_port = 0;
-            // Best effort port extraction for TCP/UDP
             if ((pv.l4 == L4Protocol::Tcp || pv.l4 == L4Protocol::Udp) && pv.length >= 38) {
                 uint8_t ihl = (ip[0] & 0x0F) * 4;
                 const uint8_t* transport = ip + ihl;
@@ -171,7 +163,6 @@ protected:
             }
         }
         
-        // Ensure this line is present and printed right at the very end of on_packet, exactly as it originally was
         proto_counts_[static_cast<uint8_t>(pv.l4)].fetch_add(1, std::memory_order_relaxed);
     }
 
@@ -185,4 +176,4 @@ private:
     std::unordered_map<uint16_t, CountBytes> port_stats_;
 };
 
-} // namespace sniff::pipeline
+} 

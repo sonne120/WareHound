@@ -57,4 +57,4 @@ private:
     mutable std::mutex mu_;
 };
 
-} // namespace sniff::core
+}

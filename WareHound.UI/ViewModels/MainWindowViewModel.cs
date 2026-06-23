@@ -80,7 +80,7 @@ namespace WareHound.UI.ViewModels
             {
                 if (SetProperty(ref _selectedDevice, value) && value != null)
                 {
-                    _captureSession.SelectDevice(value.Index);
+                    _captureSession.SelectDevice(Devices.IndexOf(value));
                 }
             }
         }
@@ -229,6 +229,11 @@ namespace WareHound.UI.ViewModels
                 if (Devices.Count > 0 && SelectedDevice == null)
                 {
                     SelectedDevice = Devices[0];
+                }
+
+                if (Devices.Count > 0)
+                {
+                    _ = _captureSession.WarmupSelectedDeviceAsync();
                 }
 
                 Publish<DevicesLoadedEvent>();

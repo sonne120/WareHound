@@ -91,4 +91,4 @@ private:
     std::vector<Sequence> consumer_cursors_; // one per consumer, padded
 };
 
-} // namespace sniff::core
+} 
