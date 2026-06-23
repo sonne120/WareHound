@@ -109,7 +109,6 @@ namespace WareHound.UI.Services
                     Devices.Add(device);
                     _logger.LogDebug($"Device {i}: {device.DisplayName}");
                 }
-
                 DevicesLoaded?.Invoke();
             }
             catch (Exception ex)
