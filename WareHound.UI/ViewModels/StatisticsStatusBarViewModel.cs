@@ -6,11 +6,15 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WareHound.UI.IPC;
+using WareHound.UI.Services;
 
 namespace WareHound.UI.ViewModels
 {
     public class StatisticsStatusBarViewModel : INotifyPropertyChanged
     {
+        private INativeStatisticsInterop? _nativeStats;
+
         private readonly DispatcherTimer _updateTimer;
         private readonly double[] _packetsData = new double[60];
 
@@ -84,17 +88,7 @@ namespace WareHound.UI.ViewModels
         public ObservableCollection<MiniProtocolBar> MiniProtocolBars { get; } = new();
         public ObservableCollection<TopTalkerInfo> TopTalkers { get; } = new();
 
-        private DateTime _captureStartTime = DateTime.Now;
-        private long _totalPacketCount = 0;
-        private long _totalBytes = 0;
-        private int _packetsInLastSecond = 0;
-
-        private readonly Dictionary<string, long> _protocolCounts = new()
-        {
-            { "TLS", 0 }, { "TCP", 0 }, { "UDP", 0 }, { "HTTP", 0 },
-            { "DNS", 0 }, { "QUIC", 0 }, { "mDNS", 0 }, { "SSDP", 0 },
-            { "ARP", 0 }, { "ICMP", 0 }, { "Other", 0 }
-        };
+        private long _lastTotalPackets;
 
         private readonly Dictionary<string, string> _protocolColors = new()
         {
@@ -104,10 +98,8 @@ namespace WareHound.UI.ViewModels
             { "ICMP", "#84CC16" }, { "Other", "#6B7280" }
         };
 
-        private readonly Dictionary<string, long> _ipCounts = new();
 
-
-        public StatisticsStatusBarViewModel()
+        public StatisticsStatusBarViewModel(ISnifferService? snifferService = null)
         {
             Array.Clear(_packetsData, 0, _packetsData.Length);
 
@@ -120,7 +112,8 @@ namespace WareHound.UI.ViewModels
 
         public void StartUpdating()
         {
-            _captureStartTime = DateTime.Now;
+            _lastTotalPackets = 0;
+            Array.Clear(_packetsData, 0, _packetsData.Length);
             _updateTimer.Start();
         }
 
@@ -129,40 +122,10 @@ namespace WareHound.UI.ViewModels
             _updateTimer.Stop();
         }
 
-        public void AddPacket(int packetSize, string protocol, string sourceIp, string? destIp = null)
-        {
-            _totalPacketCount++;
-            _totalBytes += packetSize;
-            _packetsInLastSecond++;
-
-            string normalizedProtocol = NormalizeProtocol(protocol);
-            if (_protocolCounts.ContainsKey(normalizedProtocol))
-                _protocolCounts[normalizedProtocol]++;
-            else
-                _protocolCounts["Other"]++;
-
-            if (!string.IsNullOrEmpty(sourceIp) && sourceIp != "0.0.0.0")
-            {
-                if (_ipCounts.ContainsKey(sourceIp))
-                    _ipCounts[sourceIp]++;
-                else
-                    _ipCounts[sourceIp] = 1;
-            }
-        }
-
         public void Reset()
         {
-            _totalPacketCount = 0;
-            _totalBytes = 0;
-            _packetsInLastSecond = 0;
-            _captureStartTime = DateTime.Now;
-
+            _lastTotalPackets = 0;
             Array.Clear(_packetsData, 0, _packetsData.Length);
-
-            foreach (var key in _protocolCounts.Keys.ToList())
-                _protocolCounts[key] = 0;
-
-            _ipCounts.Clear();
 
             Protocols.Clear();
             MiniProtocolBars.Clear();
@@ -180,6 +143,63 @@ namespace WareHound.UI.ViewModels
 
             ChartUpdateRequested?.Invoke(this, _packetsData);
         }
+
+        private INativeStatisticsInterop? EnsureNativeStats()
+        {
+            // Pass IntPtr.Zero so the native side resolves the active capture
+            // pipeline via GetGlobalPipeline() (there is no Sniffer_Create handle).
+            _nativeStats ??= new NativeStatisticsInterop(IntPtr.Zero);
+            return _nativeStats;
+        }
+
+        private void UpdateTimer_Tick(object? sender, EventArgs e)
+        {
+            var native = EnsureNativeStats();
+            if (native == null) return;
+
+            NativeCaptureStatistics? capture;
+            try
+            {
+                capture = native.GetCaptureStatistics();
+            }
+            catch
+            {
+                return;
+            }
+            if (!capture.HasValue) return;
+
+            long total = (long)capture.Value.TotalPackets;
+            long perSecond = Math.Max(0, total - _lastTotalPackets);
+            _lastTotalPackets = total;
+
+            for (int i = 0; i < _packetsData.Length - 1; i++)
+                _packetsData[i] = _packetsData[i + 1];
+            _packetsData[^1] = perSecond;
+
+            CurrentPPS = (int)perSecond;
+            TotalPackets = total.ToString("N0");
+            PacketsPerSecond = perSecond.ToString("F1");
+            TotalDataSize = FormatBytes((long)capture.Value.TotalBytes);
+            CaptureTime = TimeSpan.FromSeconds(capture.Value.CaptureDurationSeconds).ToString(@"hh\:mm\:ss");
+
+            var nonZeroData = _packetsData.Where(x => x > 0).ToArray();
+            if (nonZeroData.Length > 0)
+            {
+                AvgPPS = (int)Math.Round(nonZeroData.Average());
+                MaxPPS = (int)nonZeroData.Max();
+            }
+            else
+            {
+                AvgPPS = 0;
+                MaxPPS = 0;
+            }
+
+            UpdateProtocolsDisplay(native, total);
+            UpdateTopTalkersDisplay(native);
+
+            ChartUpdateRequested?.Invoke(this, (double[])_packetsData.Clone());
+        }
+
         private string NormalizeProtocol(string? protocol)
         {
             if (string.IsNullOrEmpty(protocol))
@@ -201,113 +221,83 @@ namespace WareHound.UI.ViewModels
             };
         }
 
-        private void UpdateTimer_Tick(object? sender, EventArgs e)
+        private void UpdateProtocolsDisplay(INativeStatisticsInterop native, long totalPackets)
         {
-            for (int i = 0; i < _packetsData.Length - 1; i++)
-                _packetsData[i] = _packetsData[i + 1];
+            if (totalPackets == 0) return;
 
-            _packetsData[^1] = _packetsInLastSecond;
-
-            int currentPPS = _packetsInLastSecond;
-            _packetsInLastSecond = 0;
-
-
-            CurrentPPS = currentPPS;
-            TotalPackets = _totalPacketCount.ToString("N0");
-            PacketsPerSecond = currentPPS.ToString("F1");
-            TotalDataSize = FormatBytes(_totalBytes);
-            CaptureTime = (DateTime.Now - _captureStartTime).ToString(@"hh\:mm\:ss");
-
-
-            var nonZeroData = _packetsData.Where(x => x > 0).ToArray();
-            if (nonZeroData.Length > 0)
+            NativeProtocolStats[] protocols;
+            try
             {
-                AvgPPS = (int)Math.Round(nonZeroData.Average());
-                MaxPPS = (int)nonZeroData.Max();
+                protocols = native.GetProtocolStats(6);
             }
-            else
+            catch
             {
-                AvgPPS = 0;
-                MaxPPS = 0;
+                return;
             }
+            if (protocols.Length == 0) return;
 
+            var top = protocols[0];
+            TopProtocolName = top.ProtocolName;
+            TopProtocolPercent = $"{top.Percentage:F1}%";
 
-            UpdateProtocolsDisplay();
-
-
-            UpdateTopTalkersDisplay();
-
-
-            ChartUpdateRequested?.Invoke(this, (double[])_packetsData.Clone());
-        }
-
-        private void UpdateProtocolsDisplay()
-        {
-            if (_totalPacketCount == 0) return;
-
-            var sortedProtocols = _protocolCounts
-                .Where(p => p.Value > 0)
-                .OrderByDescending(p => p.Value)
-                .Take(6)
-                .ToList();
-
-            if (sortedProtocols.Count > 0)
-            {
-                var top = sortedProtocols.First();
-                TopProtocolName = top.Key;
-                TopProtocolPercent = $"{(double)top.Value / _totalPacketCount * 100:F1}%";
-            }
             Protocols.Clear();
             MiniProtocolBars.Clear();
 
             double miniBarTotalWidth = 120;
 
-            foreach (var proto in sortedProtocols)
+            foreach (var proto in protocols)
             {
-                double percent = (double)proto.Value / _totalPacketCount * 100;
-                string colorHex = _protocolColors.TryGetValue(proto.Key, out var c) ? c : "#6B7280";
+                string colorKey = NormalizeProtocol(proto.ProtocolName);
+                string colorHex = _protocolColors.TryGetValue(colorKey, out var c) ? c : "#6B7280";
                 var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colorHex));
 
                 Protocols.Add(new ProtocolInfo
                 {
-                    Name = proto.Key,
-                    Percent = percent,
-                    PacketCount = proto.Value,
+                    Name = proto.ProtocolName,
+                    Percent = proto.Percentage,
+                    PacketCount = (long)proto.PacketCount,
                     Color = brush
                 });
 
                 MiniProtocolBars.Add(new MiniProtocolBar
                 {
-                    Width = Math.Max(percent / 100.0 * miniBarTotalWidth, 1),
+                    Width = Math.Max(proto.Percentage / 100.0 * miniBarTotalWidth, 1),
                     Color = brush
                 });
             }
         }
 
-        private void UpdateTopTalkersDisplay()
+        private void UpdateTopTalkersDisplay(INativeStatisticsInterop native)
         {
-            if (_ipCounts.Count == 0) return;
+            NativeTalkerStats[] talkers;
+            try
+            {
+                talkers = native.GetTopSourceIPs(5);
+            }
+            catch
+            {
+                return;
+            }
+            if (talkers.Length == 0) return;
 
-            var topIps = _ipCounts
-                .OrderByDescending(ip => ip.Value)
-                .Take(5)
-                .ToList();
-
-            if (topIps.Count == 0) return;
-
-            var maxCount = topIps.First().Value;
+            long maxCount = (long)talkers[0].PacketCount;
+            if (maxCount == 0) maxCount = 1;
             double barMaxWidth = 160;
+
+            long totalForPercent = talkers.Sum(t => (long)t.PacketCount);
+            if (totalForPercent == 0) totalForPercent = 1;
 
             TopTalkers.Clear();
 
-            foreach (var ip in topIps)
+            foreach (var t in talkers)
             {
+                long packets = (long)t.PacketCount;
                 TopTalkers.Add(new TopTalkerInfo
                 {
-                    IpAddress = ip.Key,
-                    PacketCount = (int)ip.Value,
-                    Percent = (double)ip.Value / _totalPacketCount * 100,
-                    BarWidth = (double)ip.Value / maxCount * barMaxWidth
+                    IpAddress = t.IpAddress,
+                    PacketCount = (int)packets,
+                    Percent = (double)packets / totalForPercent * 100,
+                    BarWidth = (double)packets / maxCount * barMaxWidth
                 });
             }
         }

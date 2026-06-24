@@ -89,6 +89,10 @@ public:
         return proto_counts_[proto].load(std::memory_order_relaxed);
     }
 
+    uint64_t get_proto_bytes(uint8_t proto) const noexcept {
+        return proto_bytes_[proto].load(std::memory_order_relaxed);
+    }
+
     struct StatEntryIP { uint32_t ip; uint64_t count; uint64_t bytes; };
     struct StatEntryPort { uint16_t port; uint64_t count; uint64_t bytes; };
 
@@ -119,7 +123,10 @@ public:
     }
 
     void clear_stats() {
-        for (int i=0; i<256; ++i) proto_counts_[i].store(0, std::memory_order_relaxed);
+        for (int i=0; i<256; ++i) {
+            proto_counts_[i].store(0, std::memory_order_relaxed);
+            proto_bytes_[i].store(0, std::memory_order_relaxed);
+        }
         std::lock_guard<std::mutex> lock(map_mutex_);
         src_ip_stats_.clear();
         dst_ip_stats_.clear();
@@ -128,10 +135,12 @@ public:
 
 protected:
     void on_packet(const PacketView& pv) override {
-        proto_counts_[static_cast<uint8_t>(pv.l4)].fetch_add(1, std::memory_order_relaxed);
-        
+        const uint8_t proto_idx = static_cast<uint8_t>(pv.l4);
+        proto_counts_[proto_idx].fetch_add(1, std::memory_order_relaxed);
+        proto_bytes_[proto_idx].fetch_add(pv.length, std::memory_order_relaxed);
+
         if (pv.parsed && pv.length >= 34) {
-            const uint8_t* ip = pv.data + 14; 
+            const uint8_t* ip = pv.data + 14;
             
             
             const char* proto_name = sniff::analyzers::HandleProto::get_name(pv.l4);
@@ -162,12 +171,11 @@ protected:
                 if (dst_port) { auto& p = port_stats_[dst_port]; p.count++; p.bytes += pv.length; }
             }
         }
-        
-        proto_counts_[static_cast<uint8_t>(pv.l4)].fetch_add(1, std::memory_order_relaxed);
     }
 
 private:
     std::atomic<uint64_t> proto_counts_[256]{};
+    std::atomic<uint64_t> proto_bytes_[256]{};
     
     struct CountBytes { uint64_t count = 0; uint64_t bytes = 0; };
     std::mutex map_mutex_;

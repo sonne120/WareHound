@@ -15,7 +15,7 @@ namespace WareHound.UI.ViewModels
         private string _captureFilter = "";
         private int _selectedTimeFormatIndex = 0;
         private int _selectedThemeIndex = 0;
-        private int _selectedPcapBackendIndex = 1;
+        private int _selectedPcapBackendIndex = 0;
         private bool _grpcEnabled = false;
         private string _grpcServerAddress = "https://localhost:5001";
 

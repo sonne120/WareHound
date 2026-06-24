@@ -71,6 +71,7 @@ struct PipelineStats {
     std::vector<uint64_t> reducer_packets;
     std::vector<uint64_t> reducer_bytes;
     std::vector<std::vector<uint64_t>> proto_counts; // per reducer, per protocol
+    std::vector<std::vector<uint64_t>> proto_bytes;  // per reducer, per protocol
 };
 
 class Pipeline {
@@ -141,12 +142,16 @@ public:
             auto l4_reducer = std::dynamic_pointer_cast<pipeline::L4CounterReducer>(r);
             if (l4_reducer) {
                 std::vector<uint64_t> counts(256, 0);
+                std::vector<uint64_t> byte_counts(256, 0);
                 for (int i = 0; i < 256; ++i) {
                     counts[i] = l4_reducer->get_proto_count(i);
+                    byte_counts[i] = l4_reducer->get_proto_bytes(i);
                 }
                 s.proto_counts.push_back(std::move(counts));
+                s.proto_bytes.push_back(std::move(byte_counts));
             } else {
                 s.proto_counts.push_back(std::vector<uint64_t>(256, 0));
+                s.proto_bytes.push_back(std::vector<uint64_t>(256, 0));
             }
         }
         return s;

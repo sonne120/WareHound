@@ -432,7 +432,6 @@ namespace WareHound.UI.Services
             }
         }
 
-
         public async IAsyncEnumerable<IList<PacketInfo>> GetPacketBatchesAsync(
             [EnumeratorCancellation] CancellationToken ct = default)
         {

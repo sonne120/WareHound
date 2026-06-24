@@ -202,7 +202,7 @@ namespace WareHound.UI.ViewModels
 
         public bool HasChartData => _packetsData.Any(v => v > 0) || ProtocolBars.Count > 0;
 
-        public StatisticsStatusBarViewModel StatisticsStatusBarViewModel { get; } = new StatisticsStatusBarViewModel();
+        public StatisticsStatusBarViewModel StatisticsStatusBarViewModel { get; }
 
         public CaptureViewModel(ISnifferService snifferService, IPacketCollectionService collectionService, IEventAggregator eventAggregator, ILoggerService logger, IStatisticsChannel statisticsChannel)
             : base(eventAggregator, logger)
@@ -211,6 +211,8 @@ namespace WareHound.UI.ViewModels
             _collectionService = collectionService ?? throw new ArgumentNullException(nameof(collectionService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _statisticsChannel = statisticsChannel ?? throw new ArgumentNullException(nameof(statisticsChannel));
+
+            StatisticsStatusBarViewModel = new StatisticsStatusBarViewModel(_snifferService);
 
             Array.Clear(_packetsData, 0, _packetsData.Length);
 
@@ -439,14 +441,6 @@ namespace WareHound.UI.ViewModels
                 foreach (var p in packetsToAdd)
                 {
                     Publish<PacketCapturedEvent, PacketInfo>(p);
-
-
-                    StatisticsStatusBarViewModel.AddPacket(
-                        (int)p.CaptureLen,
-                        p.Protocol ?? "Other",
-                        p.SourceIp ?? "0.0.0.0",
-                        p.DestIp
-                    );
                 }
 
                 if (!_hasPackets && Packets.Count > 0)

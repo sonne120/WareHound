@@ -51,17 +51,12 @@
                            FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
             </StackPanel>
             
-            <!-- Toggle between C# and C++ statistics -->
+            <!-- Statistics are computed natively in C++ -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="RefreshButton" AutomationProperties.AutomationId="RefreshButton"
                         Style="{StaticResource ModernButtonStyle}"
                         Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,16,0" Padding="16,6"/>
-                <TextBlock Text="C# Stats" VerticalAlignment="Center" Margin="0,0,8,0"
-                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
-                <ToggleButton IsChecked="{Binding UseNativeStatistics}" Width="48" Height="24"
-                              Style="{DynamicResource ToggleSwitchStyle}"
-                              ToolTip="{Binding StatsSourceText}"/>
-                <TextBlock Text="C++ Stats" VerticalAlignment="Center" Margin="8,0,0,0"
+                <TextBlock Text="C++ Stats" VerticalAlignment="Center" Margin="0,0,8,0"
                            Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                 <TextBlock Text="(Start capture first)" VerticalAlignment="Center" Margin="4,0,0,0"
                            Foreground="{DynamicResource WarningBrush}" FontSize="10"

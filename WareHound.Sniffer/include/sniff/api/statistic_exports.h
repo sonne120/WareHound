@@ -13,31 +13,40 @@
 extern "C" {
 #endif
 
+#pragma pack(push, 1)
+
     typedef struct {
-        uint64_t captured;
-        uint64_t capture_drops;
-        uint64_t mapped;
-        uint64_t unparseable;
-        uint64_t shuffle_drops;
+        uint64_t totalPackets;
+        uint64_t totalBytes;
+        uint64_t activeFlows;
+        double   packetsPerSecond;
+        double   bytesPerSecond;
+        double   captureDurationSeconds;
+        int32_t  uniqueProtocols;
+        int32_t  uniqueSourceIPs;
+        int32_t  uniqueDestIPs;
     } NativeCaptureStatistics;
 
     typedef struct {
-        uint8_t protocol;
-        uint64_t byteCount;
+        char     protocolName[32];
         uint64_t packetCount;
+        uint64_t byteCount;
+        double   percentage;
     } NativeProtocolStats;
 
     typedef struct {
-        uint32_t ipAddress;
-        uint64_t byteCount;
+        char     ipAddress[64];
         uint64_t packetCount;
+        uint64_t byteCount;
     } NativeTalkerStats;
 
     typedef struct {
         uint16_t port;
-        uint64_t byteCount;
+        char     serviceName[32];
         uint64_t packetCount;
     } NativePortStats;
+
+#pragma pack(pop)
 
     // Enable/disable native statistics collection
     SNIFFER_API void Sniffer_EnableNativeStats(void* sniffer, bool enable);

@@ -89,7 +89,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="Resolve hostnames" Style="{StaticResource SettingsTextStyle}"/>
-                            <ToggleButton Grid.Column="1" IsChecked="False" 
+                            <ToggleButton Grid.Column="1" IsChecked="True"
                                           Width="48" Height="24"
                                           Style="{DynamicResource ToggleSwitchStyle}"/>
                         </Grid>
