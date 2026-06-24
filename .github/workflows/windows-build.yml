@@ -65,44 +65,35 @@ jobs:
             Write-Host "  $($_.FullName)"
           }
 
-    - name: Download and Install Inno Setup
+    - name: Determine installer version
+      id: ver
       shell: powershell
       run: |
-        Write-Host "Downloading Inno Setup..."
-        $innoUrl = "https://jrsoftware.org/download.php/is.exe"
-        $installerPath = "$env:TEMP\innosetup.exe"
-        Invoke-WebRequest -Uri $innoUrl -OutFile $installerPath
-        Write-Host "Installing Inno Setup silently..."
-        Start-Process -FilePath $installerPath -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-" -Wait
-        Write-Host "[OK] Inno Setup installed"
+        $ref = "${{ github.ref }}"
+        if ($ref -like "refs/tags/v*") { $v = $ref.Substring("refs/tags/v".Length) } else { $v = "0.0.0" }
+        if ($v -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') { $v = "0.0.0" }
+        "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        Write-Host "Installer version: $v"
 
-    - name: Build Windows Installer
+    - name: Build MSI installer (WiX v4)
       shell: powershell
       run: |
-        $innoCompiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-        if (-not (Test-Path $innoCompiler)) {
-            Write-Host "[ERROR] Inno Setup compiler not found at: $innoCompiler"
-            exit 1
-        }
-        
-        Write-Host "Building Windows installer..."
-        New-Item -ItemType Directory -Force -Path "installer-output"
-        
-        & $innoCompiler "installer\WareHound.iss"
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "[OK] Installer created successfully"
-            Get-ChildItem "installer-output" | ForEach-Object { Write-Host "  $($_.Name)" }
-        } else {
-            Write-Host "[ERROR] Installer build failed"
-            exit 1
-        }
+        New-Item -ItemType Directory -Force -Path installer-output | Out-Null
+        $publishDir = Join-Path $env:GITHUB_WORKSPACE "WareHound.UI\bin\${{ env.BUILD_PLATFORM }}\${{ env.BUILD_CONFIGURATION }}\net8.0-windows\win-x64"
+        dotnet build installer\WareHound.wixproj -c ${{ env.BUILD_CONFIGURATION }} `
+          -p:PublishDir="$publishDir" `
+          -p:AppVersion="${{ steps.ver.outputs.version }}"
+        if ($LASTEXITCODE -ne 0) { Write-Host "[ERROR] WiX build failed"; exit 1 }
+        $msi = Get-ChildItem -Path installer -Recurse -Filter "WareHound-Setup.msi" | Select-Object -First 1
+        if (-not $msi) { Write-Host "[ERROR] MSI not produced"; exit 1 }
+        Copy-Item $msi.FullName -Destination "installer-output\WareHound-Setup-${{ steps.ver.outputs.version }}.msi" -Force
+        Write-Host "[OK] MSI created: $($msi.FullName)"
 
     - name: Upload Windows Installer
       uses: actions/upload-artifact@v4
       with:
         name: WareHound-Installer
-        path: installer-output/*.exe
+        path: installer-output/*.msi
         retention-days: 30
           
     - name: Package artifacts
@@ -292,5 +283,5 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          installer-output/*.exe
+          installer-output/*.msi
         token: ${{ secrets.GITHUB_TOKEN }}
