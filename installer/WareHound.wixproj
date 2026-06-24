@@ -16,6 +16,9 @@
     <PackageReference Include="WixToolset.UI.wixext" Version="4.0.6" />
     <!-- Provides the HarvestDirectory MSBuild item (heat) for WiX v4. -->
     <PackageReference Include="WixToolset.Heat" Version="4.0.6" />
+    <!-- Provides the WixShellExec custom action used to open the Npcap
+         download page when no packet-capture driver is detected. -->
+    <PackageReference Include="WixToolset.Util.wixext" Version="4.0.6" />
   </ItemGroup>
 
   <!-- Auto-harvest the entire published UI output into a ComponentGroup named AppFiles.

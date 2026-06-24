@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
   <Package Name="WareHound"
            Manufacturer="WareHound Team"
@@ -46,6 +47,35 @@
     <!-- Modern install-dir wizard UI -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
     <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <!-- ============================================================
+         Packet-capture driver (Npcap / WinPcap) prerequisite check.
+         WareHound needs a pcap driver to capture traffic. We detect it
+         via its service registry key (the Services hive is not subject
+         to WOW64 redirection, so this works regardless of install mode).
+         If neither Npcap nor WinPcap is present, the npcap.com download
+         page is opened at the end of a successful install. ============ -->
+    <Property Id="NPCAPINSTALLED">
+      <RegistrySearch Id="NpcapService" Root="HKLM"
+                      Key="SYSTEM\CurrentControlSet\Services\npcap"
+                      Name="ImagePath" Type="raw" />
+    </Property>
+    <Property Id="WINPCAPINSTALLED">
+      <RegistrySearch Id="WinPcapService" Root="HKLM"
+                      Key="SYSTEM\CurrentControlSet\Services\npf"
+                      Name="ImagePath" Type="raw" />
+    </Property>
+
+    <!-- ShellExecute "open" on the URL -> launches the default browser. -->
+    <SetProperty Id="WixShellExecTarget" Value="https://npcap.com/#download"
+                 Before="OpenNpcapDownloadPage" Sequence="execute" />
+    <CustomAction Id="OpenNpcapDownloadPage" BinaryRef="Wix4UtilCA_X86"
+                  DllEntry="WixShellExec" Execute="immediate" Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="OpenNpcapDownloadPage" After="InstallFinalize"
+              Condition="NOT NPCAPINSTALLED AND NOT WINPCAPINSTALLED AND NOT Installed" />
+    </InstallExecuteSequence>
 
   </Package>
 
