@@ -1,5 +1,4 @@
 name: Windows Build and Package
-
 on:
   push:
     branches: [ main, develop ]
