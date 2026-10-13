@@ -66,6 +66,7 @@ jobs:
           -r ${{ env.RID }} `
           --self-contained true `
           -p:PublishSingleFile=false `
+          -p:SkipNativeSnifferBuild=true `
           -p:Version=${{ env.VERSION }} `
           -o publish\${{ env.RID }}
 
@@ -147,6 +148,7 @@ jobs:
           -r ${{ env.RID }} \
           --self-contained true \
           -p:UseAppHost=true \
+          -p:SkipNativeSnifferBuild=true \
           -p:Version=${{ env.VERSION }} \
           -o publish/${{ env.RID }}
 
