@@ -1,12 +1,17 @@
 name: Avalonia Build and Package
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v2.0.6). Leave empty to only build.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -21,16 +26,22 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
     steps:
     - name: Determine version
       id: ver
       shell: bash
+      env:
+        INPUT_TAG: ${{ github.event.inputs.tag }}
       run: |
+        # Tag push -> use the pushed tag; manual run -> use the 'tag' input (if any)
         ref="${{ github.ref }}"
-        if [[ "$ref" == refs/tags/v* ]]; then v="${ref#refs/tags/v}"; else v="0.0.0"; fi
-        if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then v="0.0.0"; fi
+        if [[ "$ref" == refs/tags/v* ]]; then tag="${ref#refs/tags/}"; else tag="$INPUT_TAG"; fi
+        v="${tag#v}"
+        if ! [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then v="0.0.0"; tag=""; fi
         echo "version=$v" >> "$GITHUB_OUTPUT"
-        echo "Version: $v"
+        echo "tag=$tag" >> "$GITHUB_OUTPUT"
+        echo "Version: $v  Release tag: ${tag:-<none>}"
 
   windows:
     needs: version
@@ -192,8 +203,8 @@ jobs:
         retention-days: 30
 
   release:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [ windows, macos ]
+    if: needs.version.outputs.tag != ''
+    needs: [ version, windows, macos ]
     runs-on: ubuntu-latest
     steps:
     - name: Download artifacts
@@ -206,5 +217,7 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ needs.version.outputs.tag }}
+        name: WareHound ${{ needs.version.outputs.tag }}
         files: release-assets/*
         token: ${{ secrets.GITHUB_TOKEN }}

@@ -120,6 +120,95 @@ dotnet run --project WareHound.Avalonia
 ```
 The sniffer DLL must be next to the UI executable (or on `PATH`), and Npcap must be installed.
 
+## Running on macOS
+
+Download the `.dmg` for your Mac from the [Releases](../../releases) page:
+
+- `WareHound-Avalonia-<version>-osx-arm64.dmg` for Apple Silicon (M1/M2/M3/M4)
+- `WareHound-Avalonia-<version>-osx-x64.dmg` for Intel Macs
+
+Open the `.dmg` and drag **WareHound** into **Applications**.
+
+### "WareHound" Not Opened / Apple could not verify
+
+The app is not notarized by Apple yet, so on first launch macOS shows *"Apple could not verify 'WareHound' is free of malware"*. The app is not damaged. Allow it once in either of these ways:
+
+1. **System Settings:** click **Done**, open **System Settings → Privacy & Security**, scroll down to the message about "WareHound", click **Open Anyway** and confirm with your password.
+2. **Terminal:** remove the download quarantine flag, then open the app normally:
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/WareHound.app
+   ```
+
+On current macOS versions, right-click → **Open** no longer skips this check.
+
+### Packet capture permissions
+
+Capturing packets needs read access to the `/dev/bpf*` devices. If the device list is empty or capture fails to start, either:
+
+- run the app with administrator rights:
+  ```bash
+  sudo /Applications/WareHound.app/Contents/MacOS/WareHound.Avalonia
+  ```
+- or install Wireshark's **ChmodBPF** helper (it comes with the [Wireshark](https://www.wireshark.org/download.html) installer), which gives your user access to `/dev/bpf*` without `sudo`.
+- or grant access to `/dev/bpf*` yourself, as described below.
+
+#### Granting access to `/dev/bpf*` manually
+
+By default the `/dev/bpf*` devices are owned by `root` and can be read only by `root`, so the kernel refuses capture requests from a normal user. To let your user capture without `sudo`, create an `access_bpf` group, add yourself to it and give that group read/write access to the devices:
+
+```bash
+# 1. Create the group (skip if it already exists, e.g. after installing Wireshark)
+sudo dseditgroup -o create access_bpf
+
+# 2. Add your user to the group
+sudo dseditgroup -o edit -a "$USER" -t user access_bpf
+
+# 3. Give the group read/write access to all BPF devices
+sudo chgrp access_bpf /dev/bpf*
+sudo chmod g+rw /dev/bpf*
+
+# Check: the devices should show "crw-rw----  root  access_bpf"
+ls -l /dev/bpf*
+```
+
+Log out and back in (or restart WareHound) so the new group membership takes effect.
+
+macOS recreates `/dev/bpf*` with root-only permissions on every reboot, so step 3 is lost after a restart. To apply it automatically at boot, install a LaunchDaemon:
+
+```bash
+sudo tee /Library/LaunchDaemons/com.warehound.chmodbpf.plist > /dev/null <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.warehound.chmodbpf</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>/usr/bin/chgrp access_bpf /dev/bpf* &amp;&amp; /bin/chmod g+rw /dev/bpf*</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+EOF
+sudo chown root:wheel /Library/LaunchDaemons/com.warehound.chmodbpf.plist
+sudo chmod 644 /Library/LaunchDaemons/com.warehound.chmodbpf.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/com.warehound.chmodbpf.plist
+```
+
+To undo it:
+
+```bash
+sudo launchctl bootout system /Library/LaunchDaemons/com.warehound.chmodbpf.plist
+sudo rm /Library/LaunchDaemons/com.warehound.chmodbpf.plist
+sudo dseditgroup -o delete access_bpf
+```
+
+> Anyone in the `access_bpf` group can capture all network traffic on this Mac. Add only users you trust.
+
 ## Tech stack
 
 C++20, libpcap/Npcap, lock-free SPMC ring buffer + SPSC shuffle matrix, C#/.NET 8, WPF, Prism (MVVM + DI), Avalonia UI, ReactiveUI, Microsoft.Extensions.Hosting/DI, AutoMapper, named-pipe IPC, SharpPcap, Inno Setup, GitHub Actions.
