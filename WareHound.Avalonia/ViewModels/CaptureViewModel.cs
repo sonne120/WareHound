@@ -68,7 +68,6 @@ public class CaptureViewModel : ViewModelBase
         this.WhenAnyValue(x => x.SelectedPacket)
             .Subscribe(_ => UpdatePacketDetails())
             .DisposeWith(Disposables);
-
         // Subscribe to events from other ViewModels
         SubscribeOnUIThread<AutoScrollChangedEvent>(e => AutoScroll = e.IsEnabled);
         SubscribeOnUIThread<FilterChangedEvent>(OnFilterChanged);
@@ -184,7 +183,8 @@ public class CaptureViewModel : ViewModelBase
         }
 
         ErrorMessage = "";
-        _captureFacade.SelectDevice(SelectedDevice.Index);
+        // NetworkDevice.Index is 1-based for display; the facade and the native sniffer use 0-based positions
+        _captureFacade.SelectDevice(SelectedDevice.Index - 1);
         _captureFacade.StartCapture();
 
         if (_captureFacade.IsCapturing)

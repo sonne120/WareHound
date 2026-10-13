@@ -194,6 +194,10 @@ void PushToPipe(const uint8_t* data, int length) {
     uint16_t ethertype = 0;
 
     if (length >= kEthHdrLen) {
+        // Ethernet II header: destination MAC (bytes 0-5), source MAC (bytes 6-11)
+        format_mac(data, snap->DestMac);
+        format_mac(data + 6, snap->SourceMac);
+
         ethertype = (static_cast<uint16_t>(data[12]) << 8) | data[13];
         l3_offset = kEthHdrLen;
 

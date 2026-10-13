@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 
 namespace WareHound.Avalonia.Infrastructure.Collections;
 
@@ -22,7 +23,7 @@ public class BulkObservableCollection<T> : ObservableCollection<T>
         finally
         {
             _suppressNotification = false;
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            NotifyReset();
         }
     }
     
@@ -41,7 +42,7 @@ public class BulkObservableCollection<T> : ObservableCollection<T>
         finally
         {
             _suppressNotification = false;
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            NotifyReset();
         }
     }
     
@@ -62,8 +63,17 @@ public class BulkObservableCollection<T> : ObservableCollection<T>
         finally
         {
             _suppressNotification = false;
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            NotifyReset();
         }
+    }
+
+    // Items.* bypasses ObservableCollection's own notifications, so raise Count/indexer changes too
+    // (otherwise bindings such as WhenAnyValue(x => x.Packets.Count) never update)
+    private void NotifyReset()
+    {
+        OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+        OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+        OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
 
     protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)

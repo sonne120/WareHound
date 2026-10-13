@@ -28,19 +28,21 @@ public class NativeSnifferService : ISnifferService, IDisposable
     private static extern bool SetEvent(SafeWaitHandle hEvent);
 
     private const string PipeName = "testpipe";
+    // On macOS/Linux the sniffer writes to a FIFO (mkfifo), not a .NET named pipe socket
+    private const string UnixFifoPath = "/tmp/testpipe";
     private const string EventName = "Global\\sniffer";
     private const int PipeConnectionTimeoutMs = 5000;
     private const int PipeServerStartDelayMs = 500;
     private const int ChannelCapacity = 10000;
 
     private SafeWaitHandle? _eventHandle;
-    private NamedPipeClientStream? _pipeClient;
+    private Stream? _pipeClient;
     private Thread? _pipeReaderThread;
     private CancellationTokenSource? _cts;
     private volatile bool _isCapturing;
     private int _packetNumber;
     private bool _disposed;
-    private int _selectedDeviceIndex = 1;
+    private int _selectedDeviceIndex;
 
     private Channel<PacketInfo>? _packetChannel;
     private bool _isLoadingDevices;
@@ -287,16 +289,17 @@ public class NativeSnifferService : ISnifferService, IDisposable
 
         Thread.Sleep(PipeServerStartDelayMs);
 
-        _pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
-        _pipeClient.Connect(PipeConnectionTimeoutMs);
+        // Starts the native pipeline and its pipe writer (creates the pipe / FIFO), as the WPF UI does
+        _snifferInterop.SelectDevice(deviceIndex);
+        _snifferInterop.Start();
+
+        _pipeClient = ConnectPipe();
 
         // Signal event to start capture
         if (OperatingSystem.IsWindows() && _eventHandle != null && !_eventHandle.IsInvalid)
         {
             SetEvent(_eventHandle);
         }
-
-        _snifferInterop.SelectDevice(deviceIndex);
 
         _isCapturing = true;
         PacketInfo.SetCaptureStartTime(DateTime.Now);
@@ -307,6 +310,36 @@ public class NativeSnifferService : ISnifferService, IDisposable
             Name = "PacketReaderThread"
         };
         _pipeReaderThread.Start();
+    }
+
+    private Stream ConnectPipe()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut);
+            pipe.Connect(PipeConnectionTimeoutMs);
+            return pipe;
+        }
+
+        // Opening a FIFO for reading blocks until the sniffer opens it for writing,
+        // so open it on a worker thread and give up after the timeout.
+        var openTask = Task.Run(() =>
+        {
+            var deadline = DateTime.UtcNow.AddMilliseconds(PipeConnectionTimeoutMs);
+            while (!File.Exists(UnixFifoPath))
+            {
+                if (DateTime.UtcNow > deadline)
+                    throw new TimeoutException($"Sniffer FIFO {UnixFifoPath} was not created");
+                Thread.Sleep(50);
+            }
+            return (Stream)new FileStream(UnixFifoPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize: 0);
+        });
+
+        if (!openTask.Wait(PipeConnectionTimeoutMs))
+            throw new TimeoutException($"Timed out connecting to sniffer FIFO {UnixFifoPath}");
+
+        _logger.LogDebug($"Connected to sniffer FIFO {UnixFifoPath}");
+        return openTask.Result;
     }
 
     private void CleanupCapture()
@@ -340,20 +373,25 @@ public class NativeSnifferService : ISnifferService, IDisposable
         {
             try
             {
-                if (_pipeClient == null || !_pipeClient.IsConnected)
+                if (_pipeClient == null || _pipeClient is PipeStream { IsConnected: false })
                 {
                     _logger.LogDebug("Pipe disconnected");
                     break;
                 }
 
-                // Read header first
-                int bytesRead = _pipeClient.Read(headerBuffer, 0, headerSize);
+                // Read header first; a FIFO may deliver it in several chunks
+                int bytesRead = _pipeClient.ReadAtLeast(headerBuffer, headerSize, throwOnEndOfStream: false);
 
                 if (bytesRead == headerSize)
                 {
                     ProcessPacketBuffer(headerBuffer);
                 }
-                else if (bytesRead > 0)
+                else if (bytesRead == 0)
+                {
+                    _logger.LogDebug("Pipe closed by sniffer");
+                    break;
+                }
+                else
                 {
                     _logger.LogDebug($"Incomplete read: {bytesRead} of {headerSize} bytes");
                 }

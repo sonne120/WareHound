@@ -27,6 +27,9 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // macOS: native popup windows open invisibly for this window (custom chrome),
+            // so ComboBox lists couldn't be clicked; render popups inside the main window instead
+            .With(new AvaloniaNativePlatformOptions { OverlayPopups = true })
             .WithInterFont()
             .LogToTrace()
             .UseReactiveUI();

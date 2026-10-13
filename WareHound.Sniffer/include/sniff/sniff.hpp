@@ -30,6 +30,7 @@
 #include "sniff/platform/timing.hpp"
 
 #include <atomic>
+#include <cinttypes>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -171,7 +172,7 @@ private:
             if (cfg_.raw_packet_callback) {
                 cfg_.raw_packet_callback(raw.data, raw.length);
             }
-             std::printf("IO: %u.%u [%s]\n",raw.length, raw.timestamp_ns, cfg_.interface_name.c_str());
+             std::printf("IO: %u.%" PRIu64 " [%s]\n", raw.length, raw.timestamp_ns, cfg_.interface_name.c_str());
             //     ip[12], ip[13], ip[14], ip[15],
             //     ip[16], ip[17], ip[18], ip[19], proto_name);
 
