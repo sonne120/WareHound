@@ -42,6 +42,11 @@ public class MainWindowViewModel : ViewModelBase
         new FilterTypeOption { Type = FilterType.DestPort, DisplayName = "Dest Port" }
     };
 
+    /// <summary>Pinned filters shown as chips; every one of them must match a packet.</summary>
+    public ObservableCollection<FilterCriteria> ActiveFilters { get; } = new();
+    public bool HasActiveFilters => ActiveFilters.Count > 0;
+    public bool CanClearFilters => IsFilterTypeSelected || HasActiveFilters;
+
     public CaptureViewModel CaptureViewModel { get; }
     public DashboardViewModel DashboardViewModel { get; }
     public StatisticsViewModel StatisticsViewModel { get; }
@@ -85,6 +90,8 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ClearCommand { get; }
     public ReactiveCommand<Unit, Unit> ToggleSidebarCommand { get; }
     public ReactiveCommand<Unit, Unit> ClearFilterCommand { get; }
+    public ReactiveCommand<Unit, Unit> PinFilterCommand { get; }
+    public ReactiveCommand<FilterCriteria, Unit> RemoveFilterCommand { get; }
     public ReactiveCommand<Unit, Unit> OpenPcapCommand { get; }
     public ReactiveCommand<Unit, Unit> SavePcapCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveToDashboardCommand { get; }
@@ -150,6 +157,7 @@ public class MainWindowViewModel : ViewModelBase
             {
                 this.RaisePropertyChanged(nameof(IsFilterTypeSelected));
                 this.RaisePropertyChanged(nameof(FilterPlaceholder));
+                this.RaisePropertyChanged(nameof(CanClearFilters));
                 ApplyFilter();
             })
             .DisposeWith(Disposables);
@@ -175,6 +183,15 @@ public class MainWindowViewModel : ViewModelBase
         ClearCommand = ReactiveCommand.Create(Clear);
         ToggleSidebarCommand = ReactiveCommand.Create(ToggleSidebar);
         ClearFilterCommand = ReactiveCommand.Create(ClearFilter);
+        PinFilterCommand = ReactiveCommand.Create(PinFilter);
+        RemoveFilterCommand = ReactiveCommand.Create<FilterCriteria>(RemoveFilter);
+
+        ActiveFilters.CollectionChanged += (_, _) =>
+        {
+            this.RaisePropertyChanged(nameof(HasActiveFilters));
+            this.RaisePropertyChanged(nameof(CanClearFilters));
+        };
+        SubscribeOnUIThread<AddFilterRequestedEvent>(e => AddFilter(e.Criteria));
         OpenPcapCommand = ReactiveCommand.Create(OpenPcap);
         SavePcapCommand = ReactiveCommand.Create(SavePcap);
 
@@ -219,7 +236,42 @@ public class MainWindowViewModel : ViewModelBase
         SelectedFilterType = FilterTypes[0];
         FilterText = "";
         ApplyFilter();
+
+        if (ActiveFilters.Count > 0)
+        {
+            ActiveFilters.Clear();
+            PublishActiveFilters();
+        }
     }
+
+    // Turns the typed filter into a chip and clears the text box for the next one.
+    private void PinFilter()
+    {
+        var type = SelectedFilterType?.Type ?? FilterType.All;
+        var text = FilterText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        FilterText = "";
+        AddFilter(new FilterCriteria(type, text));
+    }
+
+    private void AddFilter(FilterCriteria criteria)
+    {
+        if (ActiveFilters.Contains(criteria)) return;
+        ActiveFilters.Add(criteria);
+        PublishActiveFilters();
+    }
+
+    private void RemoveFilter(FilterCriteria criteria)
+    {
+        if (ActiveFilters.Remove(criteria))
+        {
+            PublishActiveFilters();
+        }
+    }
+
+    private void PublishActiveFilters()
+        => Publish(new ActiveFiltersChangedEvent(ActiveFilters.ToList()));
 
     private void ApplyFilter()
     {

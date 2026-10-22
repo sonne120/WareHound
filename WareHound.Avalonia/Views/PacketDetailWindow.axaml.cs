@@ -21,7 +21,7 @@ public partial class PacketDetailWindow : Window
 
     private void LoadPacketData(PacketInfo packet)
     {
-        HeaderProtocol.Text = packet.Protocol;
+        HeaderProtocol.Protocol = packet.Protocol;
         HeaderTime.Text = packet.TimeDisplay;
         HeaderPacketNo.Text = $"Packet #{packet.Number}";
 
@@ -33,18 +33,16 @@ public partial class PacketDetailWindow : Window
         SourceMac.Text = packet.SourceMac;
         DestMac.Text = packet.DestMac;
 
-        Protocol.Text = packet.Protocol;
+        InfoProtocol.Protocol = packet.Protocol;
         PacketId.Text = packet.Id.ToString();
         HostName.Text = string.IsNullOrEmpty(packet.HostName) ? "Unknown" : packet.HostName;
         CaptureTime.Text = packet.CaptureTime.ToString("yyyy-MM-dd HH:mm:ss.fff");
 
-        HexDump.Text = GenerateHexDump(packet);
+        HexDump.Data = BuildPacketBytes(packet);
     }
 
-    private string GenerateHexDump(PacketInfo packet)
+    private byte[] BuildPacketBytes(PacketInfo packet)
     {
-        var sb = new StringBuilder();
-
         byte[] bytes;
 
         if (packet.RawData != null && packet.RawData.Length > 0)
@@ -92,32 +90,7 @@ public partial class PacketDetailWindow : Window
             bytes = packetBytes.ToArray();
         }
 
-        for (int i = 0; i < bytes.Length; i += 16)
-        {
-            sb.Append($"{i:X8}  ");
-
-            for (int j = 0; j < 16; j++)
-            {
-                if (i + j < bytes.Length)
-                    sb.Append($"{bytes[i + j]:X2} ");
-                else
-                    sb.Append("   ");
-
-                if (j == 7) sb.Append(" ");
-            }
-
-            sb.Append(" ");
-
-            for (int j = 0; j < 16 && i + j < bytes.Length; j++)
-            {
-                byte b = bytes[i + j];
-                sb.Append(b >= 32 && b < 127 ? (char)b : '.');
-            }
-
-            sb.AppendLine();
-        }
-
-        return sb.ToString();
+        return bytes;
     }
 
     private byte[] ParseMacAddress(string mac)

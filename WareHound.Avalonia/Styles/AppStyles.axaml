@@ -45,6 +45,16 @@
             <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}" />
             <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}" />
             <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}" />
+
+            <!-- Protocol palette, consumed by the controls|ProtocolBadge selectors -->
+            <SolidColorBrush x:Key="TcpBrush" Color="{StaticResource TcpColor}" />
+            <SolidColorBrush x:Key="TlsBrush" Color="{StaticResource TlsColor}" />
+            <SolidColorBrush x:Key="HttpBrush" Color="{StaticResource HttpColor}" />
+            <SolidColorBrush x:Key="UdpBrush" Color="{StaticResource UdpColor}" />
+            <SolidColorBrush x:Key="DnsBrush" Color="{StaticResource DnsColor}" />
+            <SolidColorBrush x:Key="DhcpBrush" Color="{StaticResource DhcpColor}" />
+            <SolidColorBrush x:Key="IcmpBrush" Color="{StaticResource IcmpColor}" />
+            <SolidColorBrush x:Key="ArpBrush" Color="{StaticResource ArpColor}" />
         </Style.Resources>
     </Style>
 

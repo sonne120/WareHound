@@ -2,12 +2,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:WareHound.Avalonia.ViewModels"
              xmlns:conv="using:WareHound.Avalonia.Converters"
+             xmlns:controls="using:WareHound.Avalonia.Controls"
              x:Class="WareHound.Avalonia.Views.StatisticsView"
              x:DataType="vm:StatisticsViewModel"
              Background="{StaticResource PrimaryBrush}">
 
     <UserControl.Resources>
         <conv:PercentToWidthConverter x:Key="PercentToWidth"/>
+        <conv:PercentageToWidthConverter x:Key="PercentageToWidth"/>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -81,11 +83,21 @@
                         <TextBlock Text="Packets/Sec"
                                    Foreground="{StaticResource TextSecondaryBrush}"
                                    FontSize="12"/>
-                        <TextBlock Text="{Binding PacketsPerSecond, StringFormat='{}{0:N1}'}"
-                                   FontSize="24"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,4,0,0"/>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding PacketsPerSecond, StringFormat='{}{0:N1}'}"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       VerticalAlignment="Center"/>
+                            <controls:PacketRateGauge Grid.Column="1"
+                                                      Value="{Binding PacketsPerSecond}"
+                                                      Unit="pps"
+                                                      Width="76" Height="66"/>
+                        </Grid>
+                        <controls:TrafficSparkline Values="{Binding PacketRateHistory}"
+                                                   Height="20"
+                                                   Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -176,28 +188,41 @@
                                 <DataTemplate x:DataType="vm:ProtocolStats">
                                     <Grid Margin="0,4">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="60"/>
+                                            <ColumnDefinition Width="72"/>
                                             <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="64"/>
                                             <ColumnDefinition Width="60"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <TextBlock Grid.Column="0"
-                                                   Text="{Binding Protocol}"
-                                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                                   VerticalAlignment="Center"/>
+                                        <controls:ProtocolBadge Grid.Column="0"
+                                                                Protocol="{Binding Protocol}"/>
 
-                                        <Border Grid.Column="1"
+                                        <Border x:Name="BarTrack"
+                                                Grid.Column="1"
                                                 Background="{StaticResource TertiaryBrush}"
                                                 CornerRadius="4"
                                                 Height="16"
-                                                Margin="8,0">
+                                                Margin="8,0"
+                                                ClipToBounds="True">
                                             <Border Background="{StaticResource AccentBrush}"
                                                     CornerRadius="4"
-                                                    HorizontalAlignment="Left"
-                                                    Width="{Binding Percentage, Converter={StaticResource PercentToWidth}}"/>
+                                                    HorizontalAlignment="Left">
+                                                <Border.Width>
+                                                    <MultiBinding Converter="{StaticResource PercentageToWidth}">
+                                                        <Binding Path="Percentage"/>
+                                                        <Binding Path="Bounds.Width" ElementName="BarTrack"/>
+                                                    </MultiBinding>
+                                                </Border.Width>
+                                            </Border>
                                         </Border>
 
-                                        <TextBlock Grid.Column="2"
+                                        <controls:TrafficSparkline Grid.Column="2"
+                                                                   Values="{Binding History}"
+                                                                   Height="16"
+                                                                   Margin="4,0"
+                                                                   VerticalAlignment="Center"/>
+
+                                        <TextBlock Grid.Column="3"
                                                    Text="{Binding PacketCount, StringFormat='{}{0:N0}'}"
                                                    Foreground="{StaticResource TextSecondaryBrush}"
                                                    HorizontalAlignment="Right"

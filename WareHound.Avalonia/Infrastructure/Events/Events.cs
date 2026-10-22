@@ -21,9 +21,27 @@ public enum FilterType
 public record FilterCriteria(FilterType Type = FilterType.All, string Value = "")
 {
     public static FilterCriteria Empty => new(FilterType.All, "");
+
+    /// <summary>Short label for UI such as filter chips.</summary>
+    public string Display => Type switch
+    {
+        FilterType.Protocol => $"Protocol: {Value}",
+        FilterType.SourceIP => $"Src IP: {Value}",
+        FilterType.DestIP => $"Dst IP: {Value}",
+        FilterType.SourcePort => $"Src port: {Value}",
+        FilterType.DestPort => $"Dst port: {Value}",
+        _ => Value
+    };
 }
 
+/// <summary>The live (typed) filter changed.</summary>
 public record FilterChangedEvent(FilterCriteria Criteria);
+
+/// <summary>The set of pinned filters (chips) changed; all of them must match.</summary>
+public record ActiveFiltersChangedEvent(IReadOnlyList<FilterCriteria> Filters);
+
+/// <summary>A view asks for a filter to be pinned, e.g. from a packet context menu.</summary>
+public record AddFilterRequestedEvent(FilterCriteria Criteria);
 
 // Device Events
 public record DevicesLoadingEvent(bool IsLoading);

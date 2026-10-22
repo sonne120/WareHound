@@ -4,6 +4,8 @@
         xmlns:m="using:WareHound.Avalonia.Models"
         xmlns:views="using:WareHound.Avalonia.Views"
         xmlns:conv="using:WareHound.Avalonia.Converters"
+        xmlns:controls="using:WareHound.Avalonia.Controls"
+        xmlns:ev="using:WareHound.Avalonia.Infrastructure.Events"
         x:Class="WareHound.Avalonia.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="WareHound - Network Packet Analyzer"
@@ -152,6 +154,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="32"/>
                     <RowDefinition Height="40"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="24"/>
                 </Grid.RowDefinitions>
@@ -205,7 +208,7 @@
 
                             <ComboBox ItemsSource="{Binding Devices}"
                                       SelectedItem="{Binding SelectedDevice}"
-                                      Width="280" Height="26"
+                                      Width="250" Height="26"
                                       IsEnabled="{Binding !IsCapturing}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="m:NetworkDevice">
@@ -300,18 +303,34 @@
                                           Width="100" Height="26"/>
 
                                 <TextBox Text="{Binding FilterText}"
-                                         Width="150" Height="26"
+                                         Width="120" Height="26"
                                          Watermark="{Binding FilterPlaceholder}"
                                          IsVisible="{Binding IsFilterTypeSelected}"
                                          Margin="4,0,0,0"
                                          VerticalContentAlignment="Center"
-                                         Padding="8,0"/>
+                                         Padding="8,0">
+                                    <TextBox.KeyBindings>
+                                        <KeyBinding Gesture="Enter" Command="{Binding PinFilterCommand}"/>
+                                    </TextBox.KeyBindings>
+                                </TextBox>
+
+                                <Button Classes="control"
+                                        Command="{Binding PinFilterCommand}"
+                                        ToolTip.Tip="Pin filter as a chip (Enter)"
+                                        Width="26" Height="26"
+                                        IsVisible="{Binding IsFilterTypeSelected}"
+                                        Margin="4,0,0,0">
+                                    <Path Data="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"
+                                          Width="10" Height="10"
+                                          Stretch="Uniform"
+                                          Fill="{StaticResource TextSecondaryBrush}"/>
+                                </Button>
 
                                 <Button Classes="control"
                                         Command="{Binding ClearFilterCommand}"
-                                        ToolTip.Tip="Clear Filter"
+                                        ToolTip.Tip="Clear all filters"
                                         Width="26" Height="26"
-                                        IsVisible="{Binding IsFilterTypeSelected}"
+                                        IsVisible="{Binding CanClearFilters}"
                                         Margin="4,0,0,0">
                                     <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
                                           Width="10" Height="10"
@@ -329,7 +348,33 @@
                     </Grid>
                 </Border>
 
-                <Grid Grid.Row="2" x:Name="ContentGrid" x:CompileBindings="False">
+                <Border Grid.Row="2"
+                        Background="{StaticResource SecondaryBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="12,4"
+                        IsVisible="{Binding HasActiveFilters}">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <TextBlock Grid.Column="0"
+                                   Text="Active filters:"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   FontSize="11"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <controls:FilterChipsPanel Grid.Column="1"
+                                                   ItemsSource="{Binding ActiveFilters}"
+                                                   RemoveCommand="{Binding RemoveFilterCommand}"
+                                                   VerticalAlignment="Center">
+                            <controls:FilterChipsPanel.ItemTemplate>
+                                <DataTemplate x:DataType="ev:FilterCriteria">
+                                    <TextBlock Text="{Binding Display}"/>
+                                </DataTemplate>
+                            </controls:FilterChipsPanel.ItemTemplate>
+                        </controls:FilterChipsPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="3" x:Name="ContentGrid" x:CompileBindings="False">
                     <views:CaptureView DataContext="{Binding CaptureViewModel}"
                                        IsVisible="{Binding $parent[Window].DataContext.SelectedViewIndex, Converter={StaticResource IntToVisibility}, ConverterParameter=0}"/>
 
@@ -346,7 +391,7 @@
                                         IsVisible="{Binding $parent[Window].DataContext.SelectedViewIndex, Converter={StaticResource IntToVisibility}, ConverterParameter=4}"/>
                 </Grid>
 
-                <Border Grid.Row="3" Background="{StaticResource AccentBrush}">
+                <Border Grid.Row="4" Background="{StaticResource AccentBrush}">
                     <Grid Margin="8,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>

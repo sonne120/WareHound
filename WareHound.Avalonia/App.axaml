@@ -20,5 +20,7 @@
         <FluentTheme />
         <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
         <StyleInclude Source="avares://WareHound.Avalonia/Styles/AppStyles.axaml" />
+        <StyleInclude Source="avares://WareHound.Avalonia/Styles/ProtocolBadge.axaml" />
+        <StyleInclude Source="avares://WareHound.Avalonia/Styles/CustomControls.axaml" />
     </Application.Styles>
 </Application>

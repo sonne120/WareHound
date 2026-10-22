@@ -15,39 +15,11 @@ public partial class CaptureView : UserControl
     public static FuncValueConverter<bool, string> CaptureStatusConverter { get; } =
         new(isCapturing => isCapturing ? "● Capturing" : "○ Idle");
 
-    private CaptureViewModel? _viewModel;
-    private DispatcherTimer? _scrollTimer;
-    private int _lastKnownCount;
-
+    // Auto-scroll is handled declaratively by DataGridBehaviors.AutoScrollToEnd in CaptureView.axaml.
     public CaptureView()
     {
         InitializeComponent();
-        DataContextChanged += OnDataContextChanged;
         PacketGrid.DoubleTapped += PacketGrid_DoubleTapped;
-
-        _scrollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
-        _scrollTimer.Tick += OnScrollTimerTick;
-        _scrollTimer.Start();
-    }
-
-    private void OnDataContextChanged(object? sender, EventArgs e)
-    {
-        _viewModel = DataContext as CaptureViewModel;
-        _lastKnownCount = 0;
-    }
-
-    private void OnScrollTimerTick(object? sender, EventArgs e)
-    {
-        if (_viewModel?.AutoScroll != true || _viewModel.FilteredPackets.Count == 0)
-            return;
-
-        var currentCount = _viewModel.FilteredPackets.Count;
-        if (currentCount > _lastKnownCount)
-        {
-            _lastKnownCount = currentCount;
-            var lastItem = _viewModel.FilteredPackets[^1];
-            PacketGrid.ScrollIntoView(lastItem, null);
-        }
     }
 
     private void PacketGrid_LoadingRow(object? sender, DataGridRowEventArgs e)

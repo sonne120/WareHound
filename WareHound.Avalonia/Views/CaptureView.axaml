@@ -4,6 +4,7 @@
              xmlns:m="using:WareHound.Avalonia.Models"
              xmlns:conv="using:WareHound.Avalonia.Converters"
              xmlns:views="using:WareHound.Avalonia.Views"
+             xmlns:controls="using:WareHound.Avalonia.Controls"
              x:Class="WareHound.Avalonia.Views.CaptureView"
              x:DataType="vm:CaptureViewModel"
              Background="{StaticResource PrimaryBrush}">
@@ -36,6 +37,7 @@
                       GridLinesVisibility="Horizontal"
                       SelectionMode="Single"
                       RowBackground="Transparent"
+                      controls:DataGridBehaviors.AutoScrollToEnd="{Binding AutoScroll}"
                       LoadingRow="PacketGrid_LoadingRow">
 
                 <DataGrid.Columns>
@@ -55,6 +57,10 @@
                 <DataGrid.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="Save to Dashboard" Command="{Binding SaveToDashboardCommand}"/>
+                        <Separator/>
+                        <MenuItem Header="Filter by Protocol" Command="{Binding FilterByProtocolCommand}"/>
+                        <MenuItem Header="Filter by Source IP" Command="{Binding FilterBySourceIpCommand}"/>
+                        <MenuItem Header="Filter by Destination IP" Command="{Binding FilterByDestIpCommand}"/>
                         <Separator/>
                         <MenuItem Header="Copy Source IP" Command="{Binding CopySourceIpCommand}"/>
                         <MenuItem Header="Copy Destination IP" Command="{Binding CopyDestIpCommand}"/>
@@ -122,15 +128,22 @@
                                        Margin="0,8,0,0"/>
                         </StackPanel>
 
-                        <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                      VerticalScrollBarVisibility="Auto"
-                                      IsVisible="{Binding SelectedPacket, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <TextBlock Text="{Binding PacketHexDump}"
-                                       FontFamily="Consolas, Menlo, Monaco, monospace"
-                                       FontSize="12"
-                                       Padding="8"
-                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                        </ScrollViewer>
+                        <Grid RowDefinitions="*,Auto"
+                              IsVisible="{Binding SelectedPacket, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <ScrollViewer Grid.Row="0"
+                                          HorizontalScrollBarVisibility="Auto"
+                                          VerticalScrollBarVisibility="Auto">
+                                <controls:HexViewer x:Name="HexView" Data="{Binding PacketBytes}"/>
+                            </ScrollViewer>
+                            <Border Grid.Row="1"
+                                    BorderBrush="{StaticResource BorderLightBrush}"
+                                    BorderThickness="0,1,0,0"
+                                    Padding="8,3">
+                                <TextBlock Text="{Binding #HexView.SelectionDescription}"
+                                           Classes="secondary"
+                                           FontFamily="Consolas, Menlo, Monaco, monospace"/>
+                            </Border>
+                        </Grid>
                     </Grid>
                 </TabItem>
             </TabControl>

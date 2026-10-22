@@ -24,11 +24,13 @@ public class CaptureViewModel : ViewModelBase
     private readonly ILoggerService _logger;
     private CancellationTokenSource? _captureCts;
     private IPacketFilter _currentFilter = new NoOpFilter();
+    private IReadOnlyList<IPacketFilter> _pinnedFilters = Array.Empty<IPacketFilter>();
     private const int MaxPacketCount = 10000;
 
     [Reactive] public PacketInfo? SelectedPacket { get; set; }
     [Reactive] public ObservableCollection<TreeNode> PacketDetails { get; set; } = new();
     [Reactive] public string PacketHexDump { get; set; } = "";
+    [Reactive] public byte[]? PacketBytes { get; set; }
     [Reactive] public bool IsCapturing { get; set; }
     [Reactive] public int SelectedTabIndex { get; set; }
     [Reactive] public NetworkDevice? SelectedDevice { get; set; }
@@ -46,6 +48,9 @@ public class CaptureViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> CopySourceIpCommand { get; }
     public ReactiveCommand<Unit, Unit> CopyDestIpCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveToDashboardCommand { get; }
+    public ReactiveCommand<Unit, Unit> FilterByProtocolCommand { get; }
+    public ReactiveCommand<Unit, Unit> FilterBySourceIpCommand { get; }
+    public ReactiveCommand<Unit, Unit> FilterByDestIpCommand { get; }
 
     public CaptureViewModel(ICaptureSessionFacade captureFacade, ILoggerService logger)
     {
@@ -65,12 +70,18 @@ public class CaptureViewModel : ViewModelBase
             .Select(count => count > 0);
         SaveToDashboardCommand = ReactiveCommand.Create(SaveToDashboard, hasPackets);
 
+        var hasSelection = this.WhenAnyValue(x => x.SelectedPacket).Select(p => p != null);
+        FilterByProtocolCommand = ReactiveCommand.Create(() => RequestFilter(FilterType.Protocol), hasSelection);
+        FilterBySourceIpCommand = ReactiveCommand.Create(() => RequestFilter(FilterType.SourceIP), hasSelection);
+        FilterByDestIpCommand = ReactiveCommand.Create(() => RequestFilter(FilterType.DestIP), hasSelection);
+
         this.WhenAnyValue(x => x.SelectedPacket)
             .Subscribe(_ => UpdatePacketDetails())
             .DisposeWith(Disposables);
         // Subscribe to events from other ViewModels
         SubscribeOnUIThread<AutoScrollChangedEvent>(e => AutoScroll = e.IsEnabled);
         SubscribeOnUIThread<FilterChangedEvent>(OnFilterChanged);
+        SubscribeOnUIThread<ActiveFiltersChangedEvent>(OnActiveFiltersChanged);
         SubscribeOnUIThread<ClearPacketsEvent>(_ => Clear());
 
         // Publish capture state changes
@@ -92,6 +103,34 @@ public class CaptureViewModel : ViewModelBase
         ApplyFilter(e.Criteria.Type, e.Criteria.Value);
     }
 
+    private void OnActiveFiltersChanged(ActiveFiltersChangedEvent e)
+    {
+        _pinnedFilters = e.Filters
+            .Select(f => FilterFactory.Create(f.Type, f.Value))
+            .ToList();
+        RefreshFilteredPackets();
+    }
+
+    // Context menu: ask the main window to pin a chip for the selected packet's field.
+    private void RequestFilter(FilterType type)
+    {
+        var p = SelectedPacket;
+        if (p == null) return;
+
+        var value = type switch
+        {
+            FilterType.Protocol => p.Protocol,
+            FilterType.SourceIP => p.SourceIp,
+            FilterType.DestIP => p.DestIp,
+            _ => ""
+        };
+
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            Publish(new AddFilterRequestedEvent(new FilterCriteria(type, value)));
+        }
+    }
+
     private void OnPacketsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         // For Reset events (bulk operations), refresh filtered packets
@@ -109,7 +148,8 @@ public class CaptureViewModel : ViewModelBase
 
     private void RefreshFilteredPackets()
     {
-        var filtered = Packets.Where(p => _currentFilter.IsMatch(p)).ToList();
+        var filter = CompositeFilter.Combine(_currentFilter, _pinnedFilters);
+        var filtered = Packets.Where(filter.IsMatch).ToList();
         FilteredPackets.ReplaceAll(filtered);
     }
 
@@ -210,6 +250,7 @@ public class CaptureViewModel : ViewModelBase
         SelectedPacket = null;
         PacketDetails.Clear();
         PacketHexDump = "";
+        PacketBytes = null;
     }
 
     private async Task ConsumePacketsAsync(CancellationToken ct)
@@ -257,6 +298,7 @@ public class CaptureViewModel : ViewModelBase
     {
         PacketDetails.Clear();
         PacketHexDump = "";
+        PacketBytes = null;
 
         if (SelectedPacket == null) return;
 
@@ -287,16 +329,12 @@ public class CaptureViewModel : ViewModelBase
             proto.AddChild($"    Host: {p.HostName}");
         PacketDetails.Add(proto);
 
-        PacketHexDump = GenerateHexDump(p);
+        PacketBytes = GetPacketBytes(p);
+        PacketHexDump = FormatHexDump(PacketBytes);
     }
 
-    private string GenerateHexDump(PacketInfo p)
-    {
-        var bytes = p.RawData != null && p.RawData.Length > 0
-            ? p.RawData
-            : BuildPacketBytes(p);
-        return FormatHexDump(bytes);
-    }
+    private byte[] GetPacketBytes(PacketInfo p)
+        => p.RawData != null && p.RawData.Length > 0 ? p.RawData : BuildPacketBytes(p);
 
     private byte[] BuildPacketBytes(PacketInfo p)
     {

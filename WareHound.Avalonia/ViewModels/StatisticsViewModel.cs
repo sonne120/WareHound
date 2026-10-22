@@ -23,6 +23,12 @@ public class StatisticsViewModel : ViewModelBase
     private long _packetCount;
     private DateTime _captureStartTime = DateTime.Now;
 
+    // Rate sampling for the sparklines (one sample per refresh tick)
+    private const int RateHistoryLength = 60;
+    private DateTime _lastRefresh = DateTime.Now;
+    private long _lastTotal;
+    private readonly Dictionary<string, RateTracker> _protocolRates = new();
+
     [Reactive] public long TotalPackets { get; set; }
     [Reactive] public double PacketsPerSecond { get; set; }
     [Reactive] public string CaptureTime { get; set; } = "00:00:00";
@@ -35,6 +41,9 @@ public class StatisticsViewModel : ViewModelBase
     public ObservableCollection<TalkerInfo> TopSourceIPs { get; } = new();
     public ObservableCollection<TalkerInfo> TopDestIPs { get; } = new();
     public ObservableCollection<PortInfo> TopPorts { get; } = new();
+
+    /// <summary>Overall packets-per-second history, newest last.</summary>
+    public ObservableCollection<double> PacketRateHistory { get; } = new();
 
     public bool IsNativeStatsAvailable => false;
     public string StatsSourceText => UseNativeStatistics
@@ -59,6 +68,8 @@ public class StatisticsViewModel : ViewModelBase
     public void OnCaptureStarted()
     {
         _captureStartTime = DateTime.Now;
+        _lastRefresh = DateTime.Now;
+        _lastTotal = Interlocked.Read(ref _packetCount);
         IsCapturing = true;
         _refreshTimer.Start();
     }
@@ -115,6 +126,23 @@ public class StatisticsViewModel : ViewModelBase
         PacketsPerSecond = elapsed.TotalSeconds > 0 ? totalPackets / elapsed.TotalSeconds : 0;
         CaptureTime = elapsed.ToString(@"hh\:mm\:ss");
 
+        // Instantaneous rates since the previous refresh, for the sparklines
+        var now = DateTime.Now;
+        var dt = (now - _lastRefresh).TotalSeconds;
+        if (dt >= 0.1)
+        {
+            _lastRefresh = now;
+            PushRate(PacketRateHistory, (totalPackets - _lastTotal) / dt);
+            _lastTotal = totalPackets;
+
+            foreach (var kvp in _protocolCounts)
+            {
+                var tracker = GetTracker(kvp.Key);
+                tracker.Push((kvp.Value - tracker.LastCount) / dt);
+                tracker.LastCount = kvp.Value;
+            }
+        }
+
         // Protocol stats
         var protocolStats = _protocolCounts
             .OrderByDescending(x => x.Value)
@@ -123,7 +151,8 @@ public class StatisticsViewModel : ViewModelBase
             {
                 Protocol = kvp.Key,
                 PacketCount = kvp.Value,
-                Percentage = (double)kvp.Value / divisor * 100
+                Percentage = (double)kvp.Value / divisor * 100,
+                History = GetTracker(kvp.Key).Snapshot()
             })
             .ToList();
 
@@ -167,6 +196,43 @@ public class StatisticsViewModel : ViewModelBase
         UpdateCollection(TopPorts, topPorts);
     }
 
+    private RateTracker GetTracker(string protocol)
+    {
+        if (!_protocolRates.TryGetValue(protocol, out var tracker))
+        {
+            tracker = new RateTracker();
+            _protocolRates[protocol] = tracker;
+        }
+        return tracker;
+    }
+
+    private static void PushRate(ObservableCollection<double> history, double rate)
+    {
+        history.Add(Math.Max(0, rate));
+        if (history.Count > RateHistoryLength)
+        {
+            history.RemoveAt(0);
+        }
+    }
+
+    private sealed class RateTracker
+    {
+        private readonly List<double> _values = new();
+
+        public long LastCount;
+
+        public void Push(double rate)
+        {
+            _values.Add(Math.Max(0, rate));
+            if (_values.Count > RateHistoryLength)
+            {
+                _values.RemoveAt(0);
+            }
+        }
+
+        public double[] Snapshot() => _values.ToArray();
+    }
+
     private static void UpdateCollection<T>(ObservableCollection<T> collection, List<T> newItems)
     {
         collection.Clear();
@@ -190,6 +256,10 @@ public class StatisticsViewModel : ViewModelBase
         _destPortCounts.Clear();
         Interlocked.Exchange(ref _packetCount, 0);
         _captureStartTime = DateTime.Now;
+        _lastRefresh = DateTime.Now;
+        _lastTotal = 0;
+        _protocolRates.Clear();
+        PacketRateHistory.Clear();
 
         TotalPackets = 0;
         PacketsPerSecond = 0;
@@ -231,6 +301,8 @@ public class ProtocolStats
     public string Protocol { get; set; } = "";
     public long PacketCount { get; set; }
     public double Percentage { get; set; }
+    /// <summary>Recent packets-per-second samples for this protocol, newest last.</summary>
+    public double[] History { get; set; } = Array.Empty<double>();
 }
 
 public class TalkerInfo

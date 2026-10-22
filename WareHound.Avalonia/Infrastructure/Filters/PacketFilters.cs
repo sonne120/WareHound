@@ -117,6 +117,28 @@ public class AllFieldsFilter : IPacketFilter
     }
 }
 
+public sealed class CompositeFilter : IPacketFilter
+{
+    private readonly IPacketFilter[] _filters;
+
+    public CompositeFilter(IEnumerable<IPacketFilter> filters)
+    {
+        _filters = filters.ToArray();
+    }
+
+    public bool IsMatch(PacketInfo packet)
+    {
+        foreach (var filter in _filters)
+        {
+            if (!filter.IsMatch(packet)) return false;
+        }
+        return true;
+    }
+
+    public static IPacketFilter Combine(IPacketFilter primary, IReadOnlyList<IPacketFilter> others)
+        => others.Count == 0 ? primary : new CompositeFilter(others.Prepend(primary));
+}
+
 public static class FilterFactory
 {
     public static IPacketFilter Create(FilterType type, string value)
