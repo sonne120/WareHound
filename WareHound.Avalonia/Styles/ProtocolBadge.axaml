@@ -1,0 +1,76 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:WareHound.Avalonia.Controls">
+
+    <Design.PreviewWith>
+        <Border Padding="12" Background="White">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <controls:ProtocolBadge Protocol="TCP"/>
+                <controls:ProtocolBadge Protocol="UDP"/>
+                <controls:ProtocolBadge Protocol="TLS"/>
+                <controls:ProtocolBadge Protocol="HTTP"/>
+                <controls:ProtocolBadge Protocol="DNS"/>
+                <controls:ProtocolBadge Protocol="DHCP"/>
+                <controls:ProtocolBadge Protocol="ICMP"/>
+                <controls:ProtocolBadge Protocol="ARP"/>
+                <controls:ProtocolBadge Protocol="UNKNOWN"/>
+            </StackPanel>
+        </Border>
+    </Design.PreviewWith>
+
+    <!--
+        ProtocolBadge  -->
+    <Style Selector="controls|ProtocolBadge">
+        <Setter Property="BadgeBrush" Value="{StaticResource TertiaryBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding BadgeBrush}"
+                        CornerRadius="4"
+                        Padding="6,2">
+                    <TextBlock Text="{TemplateBinding Protocol}"
+                               Foreground="{TemplateBinding Foreground}"
+                               FontSize="{TemplateBinding FontSize}"
+                               FontWeight="{TemplateBinding FontWeight}"
+                               VerticalAlignment="Center"/>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Transport -->
+    <Style Selector="controls|ProtocolBadge[Protocol=TCP]">
+        <Setter Property="BadgeBrush" Value="{StaticResource TcpBrush}"/>
+    </Style>
+    <Style Selector="controls|ProtocolBadge[Protocol=UDP]">
+        <Setter Property="BadgeBrush" Value="{StaticResource UdpBrush}"/>
+    </Style>
+
+    <!-- Web -->
+    <Style Selector="controls|ProtocolBadge[Protocol=HTTP]">
+        <Setter Property="BadgeBrush" Value="{StaticResource HttpBrush}"/>
+    </Style>
+    <Style Selector="controls|ProtocolBadge[Protocol=HTTPS], controls|ProtocolBadge[Protocol=TLS]">
+        <Setter Property="BadgeBrush" Value="{StaticResource TlsBrush}"/>
+    </Style>
+
+    <!-- Name and address resolution -->
+    <Style Selector="controls|ProtocolBadge[Protocol=DNS], controls|ProtocolBadge[Protocol=MDNS], controls|ProtocolBadge[Protocol=LLMNR]">
+        <Setter Property="BadgeBrush" Value="{StaticResource DnsBrush}"/>
+    </Style>
+    <Style Selector="controls|ProtocolBadge[Protocol=DHCP]">
+        <Setter Property="BadgeBrush" Value="{StaticResource DhcpBrush}"/>
+    </Style>
+
+    <!-- Network layer -->
+    <Style Selector="controls|ProtocolBadge[Protocol=ICMP], controls|ProtocolBadge[Protocol=ICMPV6]">
+        <Setter Property="BadgeBrush" Value="{StaticResource IcmpBrush}"/>
+    </Style>
+    <Style Selector="controls|ProtocolBadge[Protocol=ARP]">
+        <Setter Property="BadgeBrush" Value="{StaticResource ArpBrush}"/>
+    </Style>
+</Styles>

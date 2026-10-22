@@ -1,0 +1,96 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:WareHound.Avalonia.Controls">
+
+    <!--
+        Default appearance for the custom controls in Controls/.
+        HexViewer, PacketRateGauge and TrafficSparkline draw themselves in Render(),
+        so only brushes and fonts are set here. FilterChipsPanel and FilterChip are
+        templated controls and get their ControlTemplates here.
+    -->
+
+    <Styles.Resources>
+        <SolidColorBrush x:Key="HexSelectionBrush" Color="{StaticResource AccentColor}" Opacity="0.35" />
+        <SolidColorBrush x:Key="SparklineFillBrush" Color="{StaticResource AccentColor}" Opacity="0.15" />
+    </Styles.Resources>
+
+    <Style Selector="controls|HexViewer">
+        <Setter Property="FontFamily" Value="Consolas, Menlo, Monaco, monospace"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="OffsetForeground" Value="{StaticResource TextSecondaryBrush}"/>
+        <Setter Property="AsciiForeground" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource HexSelectionBrush}"/>
+        <Setter Property="AlternateRowBrush" Value="{StaticResource PrimaryBrush}"/>
+    </Style>
+
+    <Style Selector="controls|PacketRateGauge">
+        <Setter Property="TrackBrush" Value="{StaticResource TertiaryBrush}"/>
+        <Setter Property="FillBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="MarkerBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+
+    <Style Selector="controls|TrafficSparkline">
+        <Setter Property="Stroke" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Fill" Value="{StaticResource SparklineFillBrush}"/>
+    </Style>
+
+    <Style Selector="controls|FilterChipsPanel">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="controls|FilterChip">
+        <Setter Property="Background" Value="{StaticResource TertiaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="11"
+                        Padding="10,2,4,2">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          VerticalAlignment="Center"/>
+                        <Button Name="PART_RemoveButton"
+                                Classes="chip-remove"
+                                ToolTip.Tip="Remove filter">
+                            <Path Data="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                                  Width="8" Height="8"
+                                  Stretch="Uniform"
+                                  Fill="{StaticResource TextSecondaryBrush}"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="controls|FilterChip Button.chip-remove">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style Selector="controls|FilterChip Button.chip-remove:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource BorderLightBrush}"/>
+    </Style>
+</Styles>
