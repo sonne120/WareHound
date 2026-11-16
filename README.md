@@ -1,5 +1,13 @@
+[![Release](https://img.shields.io/github/v/release/sonne120/WareHound)](https://github.com/sonne120/WareHound/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/sonne120/WareHound/total)](https://github.com/sonne120/WareHound/releases)
 [![Latest](https://img.shields.io/github/downloads/sonne120/WareHound/latest/total)](https://github.com/sonne120/WareHound/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/sonne120/WareHound/avalonia-build.yml)](https://github.com/sonne120/WareHound/actions)
+![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C)
+![.NET](https://img.shields.io/badge/.NET-512BD4)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)
+![Language](https://img.shields.io/github/languages/top/sonne120/WareHound)
+![Stars](https://img.shields.io/github/stars/sonne120/WareHound)
+![Last commit](https://img.shields.io/github/last-commit/sonne120/WareHound)
 
 # WareHound
 
