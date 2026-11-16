@@ -1,3 +1,6 @@
+[![Downloads](https://img.shields.io/github/downloads/sonne120/WareHound/total)](https://github.com/sonne120/WareHound/releases)
+[![Latest](https://img.shields.io/github/downloads/sonne120/WareHound/latest/total)](https://github.com/sonne120/WareHound/releases/latest)
+
 # WareHound
 
 ![WareHound Desktop Preview](screenshots/app_preview.png)
